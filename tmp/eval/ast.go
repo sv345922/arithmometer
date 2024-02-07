@@ -3,7 +3,19 @@ package eval
 // Интерфейс арифметического выражения
 type Expr interface {
 	// метод, вычиляющий значение выражения
-	Eval(env Env) float64
+	Eval() (float64, error)
+}
+
+// Узел
+type Node struct {
+	Op      rune
+	x, y    *Node
+	Val     float64
+	Counted bool
+}
+type Tree struct {
+	nodes     []*Node
+	relations map[int][]int
 }
 
 // переменные
