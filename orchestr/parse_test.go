@@ -6,10 +6,11 @@ import (
 )
 
 func TestParser(t *testing.T) {
-	s := "-1 +2 - 3 +4 "
+	s := "-1 +(2 + 3) / 4 +5 "
+	s = "-1+(2*3+4*5)+6"
 	tree, err := Parse(s)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
-	fmt.Print(tree)
+	fmt.Println(tree)
 }
