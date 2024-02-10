@@ -3,14 +3,14 @@ package server
 import (
 	"log"
 	"net/http"
+
+	"arithmometer/orchestr/http/server/handler"
 )
 
-func newExpression(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	expression, err := Parse(r.Form.Get("expr"))
-}
+func RunServer() {
+	//http.HandleFunc("/getresult", handler.GetResult)
+	log.Println("Starting Server")
+	http.HandleFunc("/newexpression", handler.NewExpression)
 
-func runServer() {
-	http.HandleFunc("/expression", newExpression)
 	log.Fatal(http.ListenAndServe("localhost:8000", nil))
 }
