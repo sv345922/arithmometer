@@ -1,6 +1,9 @@
 package main
 
-import "arithmometer/orchestr/http/server"
+import (
+	"arithmometer/orchestr/http/server"
+	"context"
+)
 
 // создать задачу (выражение) +
 // зафиксировать тайминги операторов
@@ -26,5 +29,7 @@ func main() {
 		exrp := "1 + 2 * 3 - 4"
 
 	*/
+	ctx := context.Background()
+	_ = ctx
 	server.RunServer()
 }

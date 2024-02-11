@@ -21,6 +21,8 @@ func (s *Symbol) getPriority() int {
 	switch s.Val {
 	case "+", "-", "*", "/": // если это оператор
 		return priority[s.Val]
+	case "(", ")":
+		return 0
 	default:
 		return 10
 	}

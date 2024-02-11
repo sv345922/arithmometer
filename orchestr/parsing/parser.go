@@ -8,7 +8,7 @@ import (
 )
 
 // Parse - парсит строку в дерево, возвращает список узлов, корень дерева и ошибку
-func Parse(input string) ([]*Symbol, []*Node, *Node, error) {
+func Parse(input string) ([]*Symbol, error) {
 	var s scanner.Scanner
 	s.Init(strings.NewReader(input))
 	s.Mode = scanner.ScanFloats | scanner.ScanInts // | scanner.ScanIdents
@@ -23,47 +23,48 @@ func Parse(input string) ([]*Symbol, []*Node, *Node, error) {
 			case "+", "-", "*", "/", "(", ")":
 				SymbList = append(SymbList, &Symbol{text})
 			default:
-				return nil, nil, nil, fmt.Errorf("invalid expression: %s", text)
+				return nil, fmt.Errorf("invalid expression: %s", text)
 			}
 		}
 	}
 	postFix, err := getPostfix(SymbList)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	nodeList, root, err := getTree(postFix)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return postFix, nodeList, root, nil
+	return postFix, nil
 }
 
 // Создает постфиксную запись выражения
 func getPostfix(input []*Symbol) ([]*Symbol, error) {
-	var opStack Stack[Symbol]
-	var postFix []*Symbol
+	var opStack Stack[Symbol] // стек хранения операторов
+	var postFix []*Symbol     // последовательсность постфиксного выражения
 
-	for _, val := range input {
-		switch val.getType() {
+	for _, currentSymbol := range input {
+		switch currentSymbol.getType() {
 		case "num":
-			postFix = append(postFix, val)
+			postFix = append(postFix, currentSymbol)
 		case "Op":
-			switch val.Val {
+			switch currentSymbol.Val {
 			case "(":
-				opStack.push(val)
+				opStack.push(currentSymbol)
 			case ")":
-				for n := opStack.pop(); n.Val != "("; n = opStack.pop() {
-					if n == nil {
+				for {
+					headStack := opStack.pop()
+					if headStack == nil {
 						return nil, fmt.Errorf("invalid paranthesis")
 					}
-					postFix = append(postFix, val)
+					if headStack.Val != "(" {
+						postFix = append(postFix, headStack)
+					} else {
+						break
+					}
 				}
 			default: // Val оператор
-				priorCur := val.getPriority()
+				priorCur := currentSymbol.getPriority()
 				for !opStack.isEmpty() && opStack.get().getPriority() >= priorCur {
 					postFix = append(postFix, opStack.pop())
 				}
-				opStack.push(val)
+				opStack.push(currentSymbol)
 			}
 		}
 	}
@@ -73,7 +74,7 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 	return postFix, nil
 }
 
-// Строит дерево выражения и возвращает список узлов и корневой узел
+// Строит дерево выражения и возвращает список узлов и корневой узел из постфиксного выражения
 func getTree(postfix []*Symbol) ([]*Node, *Node, error) {
 	if len(postfix) == 0 {
 		return nil, nil, fmt.Errorf("expression is empty")
