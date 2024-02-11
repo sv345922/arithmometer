@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"arithmometer/orchestr/http/server/handler"
 	"arithmometer/orchestr/parsing"
 	"testing"
 )
@@ -11,7 +12,7 @@ var case1 = &parsing.Node{
 	Op: "+"}
 
 func TestSafeJSON(t *testing.T) {
-	err := SafeJSON("test", case1)
+	err := handler.SafeJSON("test", case1)
 	if err != nil {
 		t.Error(err)
 	}

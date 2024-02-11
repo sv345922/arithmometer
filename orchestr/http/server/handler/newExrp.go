@@ -1,16 +1,21 @@
 package handler
 
 import (
+	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/orchestr/parsing"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-
-	"arithmometer/orchestr/parsing"
 )
 
 func NewExpression(w http.ResponseWriter, r *http.Request) {
+	// Получаем список выражений из контекста
+	expressions, err := tasker.GetExpressions(r.Context())
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	// Проверить что это запрос POST
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
@@ -18,15 +23,15 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Читаем тело запроса, в котором записано выражение и тайминги операций
-	var newExrp NewExpr
-	err := json.NewDecoder(r.Body).Decode(&newExrp)
+	var newExrp tasker.NewExpr
+	err = json.NewDecoder(r.Body).Decode(&newExrp)
 	if err != nil {
 		log.Println("ошибка POST запроса")
 		return
 	}
 	//Если тайминги не передаются, тогда они ставятся по умолчанию
 	if newExrp.Timings == nil {
-		newExrp.Timings = &Timings{
+		newExrp.Timings = &tasker.Timings{
 			Plus:  1,
 			Minus: 1,
 			Mult:  1,
@@ -45,52 +50,20 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Сохраняем задачу
-	expression := Expression{
-		Postfix: postfix,
-		Times:   *newExrp.Timings,
+	// Создаем и сохраняем задачу
+	expression := tasker.Expression{
+		UserTask: newExrp.Expr,
+		Postfix:  postfix,
+		Times:    *newExrp.Timings,
 	}
-	expression.doId()
-	err = SafeJSON("new_expression", expression)
+	expression.CreateId()
+
+	expressions.Add(&expression)
+
+	// err = SafeJSON("new_expression", expression)
+
+	// Записываем тело ответа
 	body := fmt.Sprintf("Expression:(id): %s\nTimings: %s", expression.Id, expression.Times.String())
 	w.Write([]byte(body))
-}
 
-// getNodes Возвращает список узлов
-
-// SafeJSON Сохраняет структуру в базе данных, в папке db
-func SafeJSON[T additiveJSON](name string, expr T) error {
-	jsonBytes, err := json.Marshal(expr)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	path := wd + "/orchestr/db/" + name + ".json"
-	err = os.WriteFile(path, jsonBytes, 0666)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-func LoadJSON[T additiveJSON](name string) (*T, error) {
-	var result T
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	path := wd + "/orchestr/db/" + name + ".json"
-	data, err := os.ReadFile(path)
-	err = json.Unmarshal(data, result)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	return &result, nil
 }

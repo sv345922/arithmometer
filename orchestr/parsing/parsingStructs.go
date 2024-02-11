@@ -1,6 +1,8 @@
 package parsing
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 )
@@ -59,24 +61,35 @@ type Node struct {
 	Val        float64 `json:"Val"`   // значение узла
 	Sheet      bool    `json:"sheet"` // флаг листа
 	Calculated bool    `json:"calculated"`
-	// Parent     *Node   `json:"parent"` // узел родитель
+	Err        error   `json:"err"` // узел родитель
 }
 
+// Создает ID у узла
+func (n *Node) CreateId() string {
+	s := n.String()
+	hasher := sha1.New()
+	hasher.Write([]byte(s))
+	n.NodeId = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	return n.NodeId
+}
+
+// Возвращает тип узла
 func (n *Node) getType() string {
 	if n.Op != "" {
 		return "Op"
 	}
 	return "num"
 }
+
+// Стрингер
 func (n *Node) String() string {
 	if n.Op == "" {
 		return fmt.Sprintf("%f", n.Val)
 	}
 	return fmt.Sprintf("(%s%s%s)", n.X, n.Op, n.Y)
 }
-func (n *Node) doId() {
-	n.NodeId = n.String()
-}
+
+// Возвращает значение узла
 func (n *Node) getVal() string {
 	if n.Op == "" {
 		return fmt.Sprint(n.Val)
@@ -87,10 +100,13 @@ func (n *Node) getVal() string {
 type additiveStack interface {
 	Node | Symbol
 }
+
+// Стэк для реализации алгоритма Дийксты
 type Stack[T additiveStack] struct {
 	val []*T
 }
 
+// Извлечь верхний элемент из стека и удалить его
 func (s *Stack[T]) pop() *T {
 	length := len(s.val)
 	if !s.isEmpty() {
@@ -101,25 +117,24 @@ func (s *Stack[T]) pop() *T {
 		return nil
 	}
 }
+
+// Добавить элемент в стек
 func (s *Stack[T]) push(l *T) {
 	s.val = append(s.val, l)
 }
+
+// Проверить стек на пустоту
 func (s *Stack[T]) isEmpty() bool {
 	if len(s.val) == 0 {
 		return true
 	}
 	return false
 }
+
+// Вернуть значение верхнего элемента стека
 func (s *Stack[T]) get() *T {
 	if s.isEmpty() {
 		return nil
 	}
 	return s.val[len(s.val)-1]
-}
-
-func (s *Stack[T]) getPrev() *T {
-	if len(s.val) > 1 {
-		return s.val[len(s.val)-2]
-	}
-	return nil
 }

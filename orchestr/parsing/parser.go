@@ -75,7 +75,7 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 }
 
 // Строит дерево выражения и возвращает список узлов и корневой узел из постфиксного выражения
-func getTree(postfix []*Symbol) ([]*Node, *Node, error) {
+func GetTree(postfix []*Symbol) ([]*Node, *Node, error) {
 	if len(postfix) == 0 {
 		return nil, nil, fmt.Errorf("expression is empty")
 	}
