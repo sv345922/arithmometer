@@ -8,32 +8,47 @@ import (
 	"sync"
 )
 
-// Зачада для вычислителя
+// Контейнер задач для отправки вычислителю
 type TaskContainer struct {
-	Id       string  `json:"id"`
-	TaskN    Task    `json:"taskN"`
-	Err      error   `json:"err"`
+	// идентификатор
+	Id string `json:"id"`
+	// задача
+	TaskN Task `json:"taskN"`
+	// ощибка
+	Err error `json:"err"`
+	// тайминги
 	TimingsN Timings `json:"timingsN"`
 }
+
+// Зачада для вычислителя
 type Task struct {
-	X  float64 `json:"x"`
-	Y  float64 `json:"y"`
-	Op string  `json:"op"`
+	// операнд X
+	X float64 `json:"x"`
+	// операнд Y
+	Y float64 `json:"y"`
+	// операция
+	Op string `json:"op"`
 }
 
 // Содержит задачи для вычислителей
+// .Dict - словарь задач, ключ Id
+// .mu - мьютекс для блокировки словаря
 type Tasks struct {
 	Dict map[string]*TaskContainer `json:"dict"`
 	mu   sync.RWMutex              `json:"-"`
 }
 
+// Потокобезопасно добавляет задачу в список задач
 func (t *Tasks) Add(task TaskContainer) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.Dict[task.Id] = &task
 }
 
-// Содержит список выражений пользователя
+// Содержит выражения пользователя
+// .Dict - словарь ссылок на выражения, ключ Id
+// .ListExpr - список с ссылками на выражения
+// .mu - мьютекс для блокировки
 type Expressions struct {
 	Dict     map[string]*Expression `json:"dict"`
 	ListExpr []*Expression          `json:"listExpr"`
@@ -48,16 +63,18 @@ type Expressions struct {
 		e.listExpr = append(e.listExpr[:index], e.listExpr[index+1:]...)
 	}
 */
+// Выражение
 type Expression struct {
 	Id       string            `json:"id"`
 	UserTask string            `json:"userTask"` // задание клиента
-	Postfix  []*parsing.Symbol `json:"postfix"`
-	Times    Timings           `json:"times"`
-	Result   string            `json:"result"`
-	Status   string            `json:"status"` // "done" - рассчитано
-	Root     *parsing.Node
+	Postfix  []*parsing.Symbol `json:"postfix"`  // постфиксная запись выражения
+	Times    Timings           `json:"times"`    // тайминги
+	Result   string            `json:"result"`   // результат, возможно нужно float64
+	Status   string            `json:"status"`   // "done" - рассчитано
+	Root     *parsing.Node     //корень дерева выражения TODO нужно заводить возможно
 }
 
+// Создает id выражения
 func (e *Expression) CreateId() {
 	s := ""
 	for _, symbol := range e.Postfix {
@@ -68,6 +85,7 @@ func (e *Expression) CreateId() {
 	e.Id = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
+// Определяет, вычислено ли выражение
 func (e *Expression) Calculated() bool {
 	if e.Status == "done" {
 		return true
@@ -75,6 +93,7 @@ func (e *Expression) Calculated() bool {
 	return false
 }
 
+// Тайминги для операторов
 type Timings struct {
 	Plus  int `json:"plus"`
 	Minus int `json:"minus"`
@@ -82,6 +101,7 @@ type Timings struct {
 	Div   int `json:"div"`
 }
 
+// Стрингер
 func (t *Timings) String() string {
 	return fmt.Sprintf("+: %d s, -: %d s, *: %d s, /: %d s", t.Plus, t.Minus, t.Mult, t.Div)
 }

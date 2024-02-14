@@ -8,63 +8,18 @@ import (
 	"sync"
 )
 
-// Достает список узлов из контекста
-func GetNodes(ctx context.Context) (*map[string]*parsing.Node, error) {
+// Достает рабочее пространство из контекста
+func GetWs(ctx context.Context) (*WorkingSpace, bool) {
 	mu := sync.Mutex{}
 	mu.Lock()
 	defer mu.Unlock()
-	value := ctx.Value("nodes")
-	switch res := value.(type) {
-	case *map[string]*parsing.Node:
-		return res, nil
-	default:
-		return nil, fmt.Errorf("ошибка контекста (nodes)")
-	}
-}
-
-// Достает тайминги из контекста
-func GetTimings(ctx context.Context) (*Timings, error) {
-	mu := sync.Mutex{}
-	mu.Lock()
-	defer mu.Unlock()
-	value := ctx.Value("timings")
-	switch res := value.(type) {
-	case *Timings:
-		return res, nil
-	default:
-		return nil, fmt.Errorf("ошибка контекста (timings)")
-	}
-}
-
-// Достает список задач из контекста
-func GetTasks(ctx context.Context) (*Tasks, error) {
-	mu := sync.Mutex{}
-	mu.Lock()
-	defer mu.Unlock()
-	value := ctx.Value("tasks")
-	switch res := value.(type) {
-	case *Tasks:
-		return res, nil
-	default:
-		return nil, fmt.Errorf("ошибка контекста (tasks)")
-	}
-}
-
-// Дстает список выражений из контекста
-func GetExpressions(ctx context.Context) (*Expressions, error) {
-	mu := sync.Mutex{}
-	mu.Lock()
-	defer mu.Unlock()
-	value := ctx.Value("expressions")
-	switch res := value.(type) {
-	case *Expressions:
-		return res, nil
-	default:
-		return nil, fmt.Errorf("ошибка контекста (expressions)")
-	}
+	ws, ok := ctx.Value("ws").(*WorkingSpace)
+	return ws, ok
 }
 
 // Создает новый список выражений
+// .Dict - словарь с ссылками на выражения
+// .ListExpr - список с ссылками на выраженя, повторяет .Dict
 func NewExpressions() *Expressions {
 	res := Expressions{}
 	res.Dict = make(map[string]*Expression)
@@ -78,19 +33,6 @@ func (e *Expressions) Add(expression *Expression) {
 	e.ListExpr = append(e.ListExpr, expression)
 }
 
-// Проверяет задачи, при обнаружении завершенной обновляет её статус
-// TODO
-func (e *Expressions) Update() {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	for index, expr := range e.ListExpr {
-		if expr.Calculated() {
-
-		}
-
-	}
-}
-
 // возвращает выражение из списка задач
 func FindExpression(id string, e *Expressions) *Expression {
 	e.mu.RLock()
@@ -102,6 +44,7 @@ func FindExpression(id string, e *Expressions) *Expression {
 }
 
 // Создает новый список задач
+// .Dict - словарь с задачами
 func NewTasks() *Tasks {
 	res := Tasks{}
 	res.Dict = make(map[string]*TaskContainer)
@@ -116,6 +59,7 @@ func FindNodes(id string, n map[string]*parsing.Node) *parsing.Node {
 	return nil
 }
 
+/*
 // Проверяет задачу, при её завершении удаляет
 func (t *Tasks) Update(*map[string]*parsing.Node) {
 	t.mu.RLock()
@@ -126,16 +70,17 @@ func (t *Tasks) Update(*map[string]*parsing.Node) {
 			delete(t.Dict, id)
 			t.mu.Unlock()
 		}
-		// TODO доделать проверку на ошибки вычисления
+		// TODO доделать проверку на ошибки вычисления / можно не делать?
 	}
 }
+*/
 
-// Создает список задач и выражений
-func RunTasker() (*Tasks, *Expressions, Timings, map[string]*parsing.Node) {
+// Создает список задач и выражений и сохраняет его
+func RunTasker() (*WorkingSpace, error) {
 	tasks := NewTasks()
 	expressions := NewExpressions()
+	timings := &Timings{}
 	// Восстатнавливаем выражения и задачи из базы данных
-	timings := Timings{}
 	err := restoreTaskExpr(tasks, expressions, timings)
 	if err != nil {
 		log.Println("ошибка восстановления из БД", err)
@@ -168,15 +113,27 @@ func RunTasker() (*Tasks, *Expressions, Timings, map[string]*parsing.Node) {
 			}
 		}
 	}
-	return tasks, expressions, timings, allNodes
+	workingSpace := WorkingSpace{
+		Tasks:       tasks,
+		Expressions: expressions,
+		Timings:     timings,
+		AllNodes:    &allNodes,
+	}
+	err = workingSpace.save()
+	if err != nil {
+		err = fmt.Errorf("ошибка сохранения БД: %v", err)
+	}
+	return &workingSpace, err
 }
-func restoreTaskExpr(tasks *Tasks, expressions *Expressions, timings Timings) error {
+
+// Восстанавливает рабочее пространство из сохраненной базы данных
+func restoreTaskExpr(tasks *Tasks, expressions *Expressions, timings *Timings) error {
 	db, err := LoadJSON[DataBase]("db")
 	if err != nil {
 		log.Print(err)
 	}
-	if db.Timings != nil {
-		timings = *db.Timings
+	if db.Timings == nil {
+		timings = db.Timings
 	}
 	if db.Tasks != nil {
 		tasks = db.Tasks
@@ -187,10 +144,4 @@ func restoreTaskExpr(tasks *Tasks, expressions *Expressions, timings Timings) er
 	return nil
 }
 
-// Создать список узлов выражения и построить списки задач на выполнение
-
 // Отдать ожидающие задачи на выполнение
-
-// При получении ответа от вычислителей обновить очереди
-
-// При завершении вычисления выражения сохранить результат

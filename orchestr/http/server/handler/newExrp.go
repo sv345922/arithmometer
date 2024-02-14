@@ -11,11 +11,14 @@ import (
 
 func NewExpression(w http.ResponseWriter, r *http.Request) {
 	// Получаем список выражений из контекста
-	expressions, err := tasker.GetExpressions(r.Context())
-	if err != nil {
-		log.Println(err)
+	ws, ok := tasker.GetWs(r.Context())
+	if !ok {
+		log.Println("ошибка контекста")
 		return
 	}
+
+	expressions := ws.Expressions
+
 	// Проверить что это запрос POST
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
@@ -24,7 +27,7 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 	}
 	// Читаем тело запроса, в котором записано выражение и тайминги операций
 	var newExrp tasker.NewExpr
-	err = json.NewDecoder(r.Body).Decode(&newExrp)
+	err := json.NewDecoder(r.Body).Decode(&newExrp)
 	if err != nil {
 		log.Println("ошибка POST запроса")
 		return

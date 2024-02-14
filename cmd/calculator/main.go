@@ -48,11 +48,12 @@ func main() {
 			continue
 		}
 		// Окрестратор не дал задание
+		log.Println("нет задач для вычислителя")
 		if container == nil {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		log.Println("Задача принята")
+		log.Println("задача принята")
 		// запускаем задачу в горутине
 		go func(container *calc.TaskContainer) {
 			res, err := calc.Calculate(container)
@@ -64,6 +65,7 @@ func main() {
 		answer := <-result
 		// отправляем ответ, до тех пор пока он не будет принят
 		for err != nil {
+			log.Println("отправка ответа оркестратору")
 			err = SendAnswer(container.Id, answer)
 			time.Sleep(time.Second)
 		}

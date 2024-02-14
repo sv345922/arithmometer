@@ -8,28 +8,26 @@ import (
 	"net/http"
 )
 
+// Обработчик, отдает клиенту ответ
 func GetAnswer(w http.ResponseWriter, r *http.Request) {
-	// Получаем список задач
-	tasks, err := tasker.GetTasks(r.Context())
-	if err != nil {
-		log.Println(err)
+	// Получаем рабочее пространство из контекста
+	ws, ok := tasker.GetWs(r.Context())
+	if !ok {
+		log.Println("ошибка контекста")
 		return
 	}
 	// Получаем мапу узлов
-	nodes, err := tasker.GetNodes(r.Context())
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	nodes := ws.AllNodes
+
 	// Проверить что это запрос POST
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("требуется метод POST"))
+		_, _ = w.Write([]byte("требуется метод POST"))
 		return
 	}
 	// Читаем тело запроса, в котором записан ответ
 	var container tasker.AnswerContainer
-	err = json.NewDecoder(r.Body).Decode(&container)
+	err := json.NewDecoder(r.Body).Decode(&container)
 	if err != nil {
 		log.Println("ошибка json в ответе")
 		return
@@ -49,5 +47,5 @@ func GetAnswer(w http.ResponseWriter, r *http.Request) {
 	// Установить вычисленное значение
 	task.Calculated = true
 	task.Val = container.AnswerN.Result
-	go tasks.Update(nodes) // обновление списка задач
+	go ws.Update() // обновление списка задач
 }

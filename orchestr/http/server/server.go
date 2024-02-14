@@ -14,7 +14,7 @@ func RunServer(ctx context.Context) {
 	http.HandleFunc("/newexpression", handler.NewExpression)
 	http.HandleFunc("/gettask", handler.GetTask)
 	http.HandleFunc("/getanswer", handler.GetAnswer)
-
+	//http.ServerContextKey
 	log.Println("Starting Server")
 	log.Fatal(http.ListenAndServe("localhost:8000", nil))
 }

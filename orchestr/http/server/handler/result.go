@@ -9,12 +9,13 @@ import (
 
 // Обрабатывает запросы клиента о проверке результата вычисллений
 func GetResult(w http.ResponseWriter, r *http.Request) {
-	// Получаем список выражений из контекста
-	expressions, err := tasker.GetExpressions(r.Context())
-	if err != nil {
-		log.Println(err)
+	// Получаем рабочее пространство из контекста
+	ws, ok := tasker.GetWs(r.Context())
+	if !ok {
+		log.Println("ошибка контекста")
 		return
 	}
+	expressions := ws.Expressions
 
 	// Проверить метод
 	if r.Method != http.MethodGet {
@@ -22,7 +23,7 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("требуется метод Get"))
 		return
 	}
-	// Читаем id параметров запроса
+	// Читаем id из параметров запроса
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		log.Println("не найден id в запросе")
@@ -31,7 +32,7 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 	log.Println("Id =", id)
 
 	// Обновление списка выражений
-	expressions.Update()
+	ws.Update()
 	// Поиск выражения в списке выражений
 	expression := tasker.FindExpression(id, expressions)
 

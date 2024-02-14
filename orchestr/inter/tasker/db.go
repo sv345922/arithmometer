@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"sync"
 )
 
 type DataBase struct {
@@ -12,6 +13,7 @@ type DataBase struct {
 	Expressions *Expressions `json:"expressions"`
 	Tasks       *Tasks       `json:"tasks"`
 	Timings     *Timings     `json:"timings"`
+	mu          sync.Mutex
 }
 
 type additiveJSON interface {

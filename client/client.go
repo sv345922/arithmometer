@@ -39,6 +39,8 @@ func SendNewExpression(exprString string) (string, bool) {
 	fmt.Printf("Постановка задачи\nStatus: %s\nBody:\n%s\n", resp.Status, string(body))
 	return string(body), true
 }
+
+// Получает результат вычислений
 func GetResult(id string) (string, string, error) {
 	errTotal := errors.New("ошибка получения результата")
 	// Создать запрос

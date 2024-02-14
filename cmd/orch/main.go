@@ -4,6 +4,7 @@ import (
 	"arithmometer/orchestr/http/server"
 	"arithmometer/orchestr/inter/tasker"
 	"context"
+	"log"
 )
 
 // создать задачу (выражение) +
@@ -28,10 +29,10 @@ import (
 func main() {
 
 	// сделать список задач для вычисления
-	tasks, expressions, timings, nodes := tasker.RunTasker()
-	ctx := context.WithValue(context.Background(), "tasks", tasks)
-	ctx = context.WithValue(ctx, "expressions", expressions)
-	ctx = context.WithValue(ctx, "timings", timings)
-	ctx = context.WithValue(ctx, "nodes", nodes)
+	ws, err := tasker.RunTasker()
+	if err != nil {
+		log.Print("main: %v", err)
+	}
+	ctx := context.WithValue(context.Background(), "ws", ws)
 	server.RunServer(ctx)
 }
