@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// Обработчик создания нового выражения
 func NewExpression(w http.ResponseWriter, r *http.Request) {
 	// Получаем рабочее пространство из контекста
 	ws, ok := tasker.GetWs(r.Context())
@@ -35,15 +36,10 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 	}
 	//Если тайминги не передаются, тогда они ставятся по умолчанию
 	if newExrp.Timings == nil {
-		newExrp.Timings = &tasker.Timings{
-			Plus:  1,
-			Minus: 1,
-			Mult:  1,
-			Div:   1,
-		}
+		newExrp.Timings = &tasker.Timings{Plus: 1, Minus: 1, Mult: 1, Div: 1}
 	}
 	// Парсим выражение, и проверяем его
-	// предполагается, что если парсинг с ошибкой, значит невалидное выражение
+	// Предполагается, что если парсинг с ошибкой, значит невалидное выражение
 	postfix, err := parsing.Parse(newExrp.Expr)
 	// если невалидное выражение
 	if err != nil {
@@ -77,10 +73,6 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Записываем тело ответа
-	body := fmt.Sprintf("%d - Expression:(id)\nTimings: %s",
-		expression.IdExpression,
-		expression.Times.String())
+	body := fmt.Sprintf("%d", expression.IdExpression)
 	w.Write([]byte(body))
-	w.Header()
-
 }

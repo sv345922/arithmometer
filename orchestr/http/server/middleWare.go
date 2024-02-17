@@ -3,7 +3,6 @@ package server
 import (
 	"arithmometer/orchestr/inter/tasker"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -11,7 +10,6 @@ import (
 func stateContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ws, err := tasker.RunTasker()
-		fmt.Printf("%v\n", ws)
 		if err != nil {
 			log.Println("main: %v", err)
 		}

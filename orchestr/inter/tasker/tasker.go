@@ -24,7 +24,7 @@ func GetWs(ctx context.Context) (*WorkingSpace, bool) {
 // .ListExpr - список с ссылками на выраженя, повторяет .Dict
 func NewExpressions() *Expressions {
 	res := Expressions{}
-	res.Dict = make(map[int]*Expression)
+	res.Dict = make(map[uint64]*Expression)
 	res.ListExpr = make([]*Expression, 0)
 	return &res
 }
@@ -36,7 +36,7 @@ func (e *Expressions) Add(expression *Expression) {
 }
 
 // возвращает выражение из списка задач
-func FindExpression(id int, e *Expressions) *Expression {
+func FindExpression(id uint64, e *Expressions) *Expression {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	if task, ok := e.Dict[id]; ok {
@@ -50,13 +50,13 @@ func FindExpression(id int, e *Expressions) *Expression {
 // .Queue - очередь задач
 func NewTasks() *Tasks {
 	res := Tasks{}
-	res.Dict = make(map[int]*TaskContainer)
+	res.Dict = make(map[uint64]*TaskContainer)
 	res.Queue = NewDequeue()
 	return &res
 }
 
 // возвращает задачу из списка (мапы) задач
-func FindNodes(id int, n map[int]*parsing.Node) *parsing.Node {
+func FindNodes(id uint64, n map[uint64]*parsing.Node) *parsing.Node {
 	if node, ok := n[id]; ok {
 		return node
 	}
@@ -68,7 +68,7 @@ func RunTasker() (*WorkingSpace, error) {
 	tasks := NewTasks()
 	expressions := NewExpressions()
 	timings := &Timings{}
-	allNodes := make(map[int]*parsing.Node) // ключом является id узла
+	allNodes := make(map[uint64]*parsing.Node) // ключом является id узла
 	/*
 		// Проверка на существование сохраненной базы данных с созданием пустого файла
 		if ok, err := checkDb(); !ok {
@@ -77,57 +77,32 @@ func RunTasker() (*WorkingSpace, error) {
 			}
 		}
 	*/
-
-	// Восстанавливаем выражения, задачи и тайминги из базы данных
-	err := restoreTaskExpr(tasks, expressions, timings)
+	ws := WorkingSpace{
+		Tasks:       tasks,
+		Expressions: expressions,
+		Timings:     timings,
+		AllNodes:    allNodes,
+	}
+	// Восстанавливаем выражения и задачи из базы данных
+	err := restoreTaskExpr(ws.Tasks, ws.Expressions)
 	if err != nil {
 		log.Println("ошибка восстановления из БД", err)
 	}
 	// Если база данных не содержит задач, но содержит выражения
 	// создаем очередь задач из выражений
-	if tasks == nil && expressions != nil {
-		for _, expression := range expressions.ListExpr {
-			// строим дерево выражения
-			nodes, root, err := parsing.GetTree(expression.Postfix)
-			// Записываем в выражение ошибку, если она возникла при построении дерева
-			// выражения
-			if err != nil {
-				expression.ParsError = err
-				continue
-			}
-			expression.Root = root
-			// создаем дерево задач
-			for _, node := range nodes {
-				// Создаем ID для узлов
-				node.CreateId()
-				// заполняем словарь узлами
-				allNodes[node.NodeId] = node
-				// Если узел не рассчитан
-				if !node.Calculated {
-					// добавляем его в таски
-					tasks.AddTask(TaskContainer{
-						IdTask: node.NodeId,
-						TaskN:  Task{X: node.X.Val, Y: node.X.Val, Op: node.Op},
-					})
-				}
-			}
-		}
+	if ws.Tasks.Queue.L == 0 {
+		ws.Update()
 	}
-	workingSpace := WorkingSpace{
-		Tasks:       tasks,
-		Expressions: expressions,
-		//Timings:     timings,
-		AllNodes: allNodes,
-	}
-	err = workingSpace.Save()
+
+	err = ws.Save()
 	if err != nil {
 		err = fmt.Errorf("ошибка сохранения БД: %v", err)
 	}
-	return &workingSpace, err
+	return &ws, err
 }
 
 // Восстанавливает рабочее пространство из сохраненной базы данных
-func restoreTaskExpr(tasks *Tasks, expressions *Expressions, timings *Timings) error {
+func restoreTaskExpr(tasks *Tasks, expressions *Expressions) error {
 	var result = &DataBase{
 		Expressions: NewExpressions(),
 		Tasks:       NewTasks(),
@@ -153,18 +128,8 @@ func restoreTaskExpr(tasks *Tasks, expressions *Expressions, timings *Timings) e
 		log.Print(err)
 		return err
 	}
-	/*
-		if db.Timings == nil {
-			timings = db.Timings
-		}
-	
-	*/
-	if db.Tasks != nil {
-		tasks = db.Tasks
-	}
-	if db.Expressions != nil {
-		expressions = db.Expressions
-	}
+	tasks = db.Tasks
+	expressions = db.Expressions
 	return nil
 }
 

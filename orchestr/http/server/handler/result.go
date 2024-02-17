@@ -36,7 +36,8 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 	// Обновление списка задач и выражений
 
 	// преобразуем id в число
-	idInt, _ := strconv.Atoi(id)
+	idInt, _ := strconv.ParseUint(id, 10, 64)
+	//idInt, _ := strconv.Atoi(id)
 	// Поиск выражения в списке выражений
 	expression := tasker.FindExpression(idInt, expressions)
 
@@ -44,8 +45,6 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 	if expression == nil {
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("id не найден"))
-
-		//log.Println("id не найден") // TODO убрать
 		return
 	}
 	if expression.Calculated() {

@@ -33,7 +33,8 @@ func GiveAnswer(w http.ResponseWriter, r *http.Request) {
 		log.Println("ошибка json в ответе")
 		return
 	}
-	id, _ := strconv.Atoi(container.Id)
+	//id, _ := strconv.Atoi(container.Id)
+	id, _ := strconv.ParseUint(container.Id, 10, 64)
 	// Обновляем очередь задач с учетом выполненной задачи
 	err = ws.UpdateTasks(id, &container.AnswerN)
 

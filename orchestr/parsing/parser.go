@@ -36,8 +36,8 @@ func Parse(input string) ([]*Symbol, error) {
 
 // Создает постфиксную запись выражения
 func getPostfix(input []*Symbol) ([]*Symbol, error) {
-	var opStack Stack[Symbol] // стек хранения операторов
-	var postFix []*Symbol     // последовательсность постфиксного выражения
+	var postFix []*Symbol                   // последовательсность постфиксного выражения
+	opStack := newStack[Symbol](len(input)) // стек хранения операторов
 
 	for _, currentSymbol := range input {
 		switch currentSymbol.getType() {
@@ -61,7 +61,7 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 				}
 			default: // Val оператор
 				priorCur := currentSymbol.getPriority()
-				for !opStack.isEmpty() && opStack.get().getPriority() >= priorCur {
+				for !opStack.isEmpty() && opStack.top().getPriority() >= priorCur {
 					postFix = append(postFix, opStack.pop())
 				}
 				opStack.push(currentSymbol)
@@ -74,40 +74,44 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 	return postFix, nil
 }
 
-// Строит дерево выражения и возвращает список узлов и корневой узел из постфиксного выражения
-func GetTree(postfix []*Symbol) ([]*Node, *Node, error) {
+// Строит дерево выражения и возвращает корневой узел из постфиксного выражения
+func GetTree(postfix []*Symbol) (*Node, error) {
 	if len(postfix) == 0 {
-		return nil, nil, fmt.Errorf("expression is empty")
+		return nil, fmt.Errorf("expression is empty")
 	}
-	stack := new(Stack[Node])
+	stack := newStack[Node](len(postfix))
 	for _, symbol := range postfix {
 		node := symbol.createNode()
 		// Если узел оператор
-		if node.getType() == "Op" {
+
+		if node.getType() != "num" {
 			// если стек пустой, возвращаем ошибку выражения
 			if stack.isEmpty() {
-				return nil, nil, fmt.Errorf("ошибка выражения, оператор без операнда")
+				return nil, fmt.Errorf("ошибка выражения, оператор без операнда")
 			}
-			y := stack.pop()
-			x := stack.get()
+			y := stack.pop() // взять
+			x := stack.pop() // взять
+
 			// если в стеке нет x, создаем вместо него узел с val=0,
 			// обработка унарных операторов
 			if x == nil {
-				node.X = &Node{Val: 0, Parent: node}
+				node.X = &Node{Val: 0, Parent: node, Sheet: true, Calculated: true}
 				node.Y = y
+				// устанавливаем родителя
 				y.Parent = node
 			} else {
-				x = stack.pop()
 				node.X = x
 				node.Y = y
+				// устанавливаем родителя
 				x.Parent = node
 				y.Parent = node
 			}
-			stack.push(node)
+			stack.push(node) // положить
 		} else {
 			// если узел не оператор, то он число
-			stack.push(node)
+			stack.push(node) // положить
 		}
 	}
-	return stack.val, stack.get(), nil
+
+	return stack.top(), nil
 }

@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 )
 
 // Контейнер задач для отправки вычислителю
 type TaskContainer struct {
 	// идентификатор задачи, передается вычислителю
-	IdTask   int        `json:"id"`
+	IdTask   uint64     `json:"id"`
 	TaskN    Task       `json:"taskN"`    // задача
 	Err      error      `json:"err"`      // ошибка
 	TimingsN Timings    `json:"timingsN"` // тайминги
@@ -30,9 +29,9 @@ type Task struct {
 // .Dict - словарь задач, ключ IdExpression
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
-	Queue Dequeue                `json:"queue"`
-	Dict  map[int]*TaskContainer `json:"dict"` // ключ IdTask
-	mu    sync.RWMutex           `json:"-"`
+	Queue Dequeue                   `json:"queue"`
+	Dict  map[uint64]*TaskContainer `json:"dict"` // ключ IdTask
+	mu    sync.RWMutex              `json:"-"`
 }
 
 // Добавляет задачу в список задач
@@ -47,7 +46,7 @@ func (t *Tasks) AddTask(task TaskContainer) {
 }
 
 // Удаляет задачу
-func (t *Tasks) RemoveTask(idTask int) {
+func (t *Tasks) RemoveTask(idTask uint64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	// удаление из очереди
@@ -89,9 +88,9 @@ func (t *Tasks) GetTask(calcId int) *TaskContainer {
 // .ListExpr - список с ссылками на выражения
 // .mu - мьютекс для блокировки
 type Expressions struct {
-	Dict     map[int]*Expression `json:"dict"` // ключ id запроса выражения/запроса клиента
-	ListExpr []*Expression       `json:"listExpr"`
-	mu       sync.RWMutex        `json:"-"`
+	Dict     map[uint64]*Expression `json:"dict"` // ключ id запроса выражения/запроса клиента
+	ListExpr []*Expression          `json:"listExpr"`
+	mu       sync.RWMutex           `json:"-"`
 }
 
 // Обновляет список выражений, при вычисленном корне выражения, либо делении на ноль,
@@ -102,7 +101,7 @@ func (e *Expressions) UpdateStatus(root *parsing.Node, status string, result flo
 	defer e.mu.RUnlock()
 	for _, expression := range e.ListExpr {
 		expression.mu.Lock()
-		if expression.Root == root {
+		if expression.RootId == root.NodeId {
 			expression.Status = status
 			expression.Result = result
 			expression.mu.Unlock()
@@ -122,25 +121,27 @@ func (e *Expressions) UpdateStatus(root *parsing.Node, status string, result flo
 */
 // Выражение
 type Expression struct {
-	IdExpression int               `json:"id"`       // id запроса клиента
-	UserTask     string            `json:"userTask"` // задание клиента
-	Postfix      []*parsing.Symbol `json:"postfix"`  // постфиксная запись выражения
-	Times        Timings           `json:"times"`    // тайминги
-	Result       float64           `json:"result"`   // результат, TODO был тип string
-	Status       string            `json:"status"`   // ""/"done"/"деление на ноль"
-	Root         *parsing.Node     //корень дерева выражения TODO установить корневой узел
+	IdExpression uint64            `json:"id"`        // id запроса клиента
+	UserTask     string            `json:"userTask"`  // задание клиента
+	Postfix      []*parsing.Symbol `json:"postfix"`   // постфиксная запись выражения
+	Times        Timings           `json:"times"`     // тайминги
+	Result       float64           `json:"result"`    // результат,
+	Status       string            `json:"status"`    // ""/"done"/"деление на ноль"
+	RootId       uint64            `json:"rootId"`    // id кореневого узла
 	ParsError    error             `json:"parsError"` // Ошибка парсинга
 	mu           sync.Mutex
 }
 
 // Создает id выражения
 func (e *Expression) CreateId() {
-	e.IdExpression = int(time.Now().UnixNano())
+	s := ""
+	for _, symbol := range e.Postfix {
+		s = s + symbol.Val
+	}
+	e.IdExpression = parsing.GetId(s)
+
 	/*
-		s := ""
-		for _, symbol := range e.Postfix {
-			s += symbol.Val
-		}
+
 		hasher := sha1.New()
 		hasher.Write([]byte(s))
 		e.IdExpression = base64.URLEncoding.EncodeToString(hasher.Sum(nil))

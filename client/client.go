@@ -6,13 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"time"
 )
 
 // Задача для вычисления
-var expr = "-1+2-3/4+5*4"
+var expr = "-1+2-3/4+5* 6"
 
 func SendNewExpression(exprString string) (string, bool) {
 	//errTotal := errors.New("ошибка отправки нового выражения")
@@ -41,7 +39,7 @@ func SendNewExpression(exprString string) (string, bool) {
 		return "", false
 	}
 	fmt.Printf("Постановка задачи\nStatus: %s\nBody:\n%s\n", resp.Status, string(body))
-	id := string(body)[:20]
+	id := string(body)
 	fmt.Println("Задача отправлена")
 	return id, true
 }
@@ -70,11 +68,11 @@ func main() {
 	//	fmt.Println("Задача отправлена")
 	//}
 	fmt.Println()
-	time.Sleep(10 * time.Second)
+	//time.Sleep(10 * time.Second)
 	// получение ответа
-	_, _, err := GetResult(id)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	_ = id
+	//_, _, err := GetResult(id)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 }

@@ -41,7 +41,7 @@ func (d *Dequeue) PopFront() (*TaskContainer, error) {
 	d.Q = d.Q[1:]
 	return result, nil
 }
-func (d *Dequeue) removeTask(idTask int) error {
+func (d *Dequeue) removeTask(idTask uint64) error {
 	for i, element := range d.Q {
 		if element.IdTask == idTask {
 			d.Q = append(d.Q[:i], d.Q[i+1:]...)
@@ -59,6 +59,7 @@ func (d *Dequeue) Update() {
 	var notInWork []*TaskContainer
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	fmt.Printf("%v %v\n", d.L, len(d.Q)) // TODO delete
 	for i := 0; i < d.L; i++ {
 		// Если текущий элемент не вычисляется
 		if d.Q[i].CalcId == 0 {

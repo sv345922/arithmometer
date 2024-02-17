@@ -22,12 +22,4 @@ func RunServer(ctx context.Context) {
 
 	log.Println("Starting Server")
 	log.Fatal(http.ListenAndServe("localhost:8000", mux))
-
-	/*
-		s := &http.Server{
-			Addr:    ":8000",
-			Handler: mux,
-		}
-		log.Fatal(s.ListenAndServe())
-	*/
 }

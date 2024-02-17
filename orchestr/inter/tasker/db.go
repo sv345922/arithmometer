@@ -32,7 +32,7 @@ func SafeJSON[T additiveJSON](name string, expr T) error {
 		log.Println(err)
 		return err
 	}
-	path := wd + "/orchestr/db/" + name + ".json"
+	path := wd + "\\orchestr\\db\\" + name + ".json"
 	err = os.WriteFile(path, jsonBytes, 0666)
 	if err != nil {
 		log.Println(err)
@@ -49,7 +49,7 @@ func LoadJSON[T additiveJSON](name string) (*T, error) {
 		log.Println(err)
 		return nil, err
 	}
-	path := wd + "/orchestr/db/" + name + ".json"
+	path := wd + "\\orchestr\\db\\" + name + ".json"
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Println("ошибка открытия json", err)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"time"
 )
 
 var priority = map[string]int{
@@ -44,7 +43,7 @@ func (s *Symbol) String() string {
 // Возвращает узел вычисления полученный из символа
 func (s *Symbol) createNode() *Node {
 	switch s.getType() {
-	case "+", "-", "*", "/": // если символ оператор
+	case "Op": // если символ оператор
 		return &Node{Op: s.Val}
 	default: // Если символ операнд
 		val, _ := strconv.ParseFloat(s.Val, 64)
@@ -54,7 +53,7 @@ func (s *Symbol) createNode() *Node {
 
 // Node - узел выражения
 type Node struct {
-	NodeId     int          `json:"nodeId"`
+	NodeId     uint64       `json:"nodeId"`
 	Op         string       `json:"op"` // оператор
 	X          *Node        `json:"x"`
 	Y          *Node        `json:"y"`     // потомки
@@ -67,8 +66,9 @@ type Node struct {
 }
 
 // Создает ID у узла
-func (n *Node) CreateId() int {
-	n.NodeId = int(time.Now().Unix())
+func (n *Node) CreateId() uint64 {
+	n.NodeId = GetId(n.String())
+	//n.NodeId = int(time.Now().Unix())
 	/*
 		s := n.String()
 		hasher := sha1.New()
@@ -77,6 +77,13 @@ func (n *Node) CreateId() int {
 		return n.NodeId
 	*/
 	return n.NodeId
+}
+func GetId(s string) uint64 {
+	res := uint64(0)
+	for _, v := range []byte(s) {
+		res += uint64(v)
+	}
+	return res
 }
 
 // Возвращает тип узла
@@ -89,7 +96,7 @@ func (n *Node) getType() string {
 
 // Стрингер
 func (n *Node) String() string {
-	if n.Op == "" {
+	if n.getType() != "Op" {
 		return fmt.Sprintf("%f", n.Val)
 	}
 	return fmt.Sprintf("(%s%s%s)", n.X, n.Op, n.Y)
@@ -110,14 +117,22 @@ type additiveStack interface {
 // Стэк для реализации алгоритма Дийксты
 type Stack[T additiveStack] struct {
 	val []*T
+	ind int
+}
+
+func newStack[T additiveStack](size int) *Stack[T] {
+	return &Stack[T]{
+		val: make([]*T, size),
+		ind: -1,
+	}
 }
 
 // Извлечь верхний элемент из стека и удалить его
 func (s *Stack[T]) pop() *T {
-	length := len(s.val)
 	if !s.isEmpty() {
-		res := s.val[length-1]
-		s.val = s.val[:length-1]
+		res := s.val[s.ind]
+		s.val[s.ind] = nil
+		s.ind--
 		return res
 	} else {
 		return nil
@@ -126,21 +141,19 @@ func (s *Stack[T]) pop() *T {
 
 // Добавить элемент в стек
 func (s *Stack[T]) push(l *T) {
-	s.val = append(s.val, l)
+	s.ind++
+	s.val[s.ind] = l
 }
 
 // Проверить стек на пустоту
 func (s *Stack[T]) isEmpty() bool {
-	if len(s.val) == 0 {
-		return true
-	}
-	return false
+	return s.ind < 0
 }
 
 // Вернуть значение верхнего элемента стека
-func (s *Stack[T]) get() *T {
+func (s *Stack[T]) top() *T {
 	if s.isEmpty() {
 		return nil
 	}
-	return s.val[len(s.val)-1]
+	return s.val[s.ind]
 }

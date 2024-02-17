@@ -7,10 +7,10 @@ import (
 )
 
 type WorkingSpace struct {
-	Tasks       *Tasks                `json:"tasks"`
-	Expressions *Expressions          `json:"expressions"`
-	Timings     *Timings              `json:"timings"`
-	AllNodes    map[int]*parsing.Node // ключ id узла
+	Tasks       *Tasks                   `json:"tasks"`
+	Expressions *Expressions             `json:"expressions"`
+	Timings     *Timings                 `json:"timings"`
+	AllNodes    map[uint64]*parsing.Node // ключ id узла
 }
 
 // Сохраняет рабочее пространство
@@ -35,7 +35,7 @@ func (ws *WorkingSpace) Save() error {
 // Обновляет очередь задач
 // Проверяет список выражений и если оно вычислено, обновляет его статус
 // Добавляет новую задачу в начало очереди задач, если выражение не корень выражения
-func (ws *WorkingSpace) UpdateTasks(IdTask int, answer *Answer) error {
+func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 	currentNode := ws.AllNodes[IdTask]
 	// Проверка деления на ноль и обновление выражения
 	// с удалением не требующих решения задач,
@@ -75,16 +75,25 @@ func (ws *WorkingSpace) UpdateTasks(IdTask int, answer *Answer) error {
 	return nil
 }
 func (ws *WorkingSpace) Update() {
+	// Взять выражения
+	// проверить на существование списка выражений
+	if ws.Expressions == nil {
+		return
+	}
+	//проходим по задачам
 	for _, expression := range ws.Expressions.ListExpr {
 		// строим дерево выражения
-		nodes, root, err := parsing.GetTree(expression.Postfix)
+		root, err := parsing.GetTree(expression.Postfix)
+		nodes := make([]*parsing.Node, 0)
+		nodes = GetNodes(root, nodes)
+
 		// Записываем в выражение ошибку, если она возникла при построении дерева
 		// выражения
 		if err != nil {
 			expression.ParsError = err
 			continue
 		}
-		expression.Root = root
+
 		// Создаем дерево задач
 		for _, node := range nodes {
 			// Создаем ID для узлов
@@ -100,7 +109,19 @@ func (ws *WorkingSpace) Update() {
 				})
 			}
 		}
+		expression.RootId = root.NodeId
 	}
+}
+
+// Проходит дерево выражения от корня и создает список узлов выражения
+func GetNodes(root *parsing.Node, nodes []*parsing.Node) []*parsing.Node {
+	nodes = append(nodes, root)
+	if root.Sheet {
+		return nodes
+	}
+	nodes = GetNodes(root.X, nodes)
+	nodes = GetNodes(root.Y, nodes)
+	return nodes
 }
 
 // Проверяет на готовность родительский узел, при готовности добавляет его в очередь задач

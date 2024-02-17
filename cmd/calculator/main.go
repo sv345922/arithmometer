@@ -13,7 +13,6 @@ import (
 
 // запрашивает задачу у оркестратора
 func getTask(calcId string) (*calc.TaskContainer, error) {
-	// TODO в запрос надо прикладывать id калькулятора
 	container := &calc.TaskContainer{}
 	url := "http://127.0.0.1:8000/gettask?id=" + calcId
 	resp, err := http.Get(url)
