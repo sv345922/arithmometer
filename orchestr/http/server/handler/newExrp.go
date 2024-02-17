@@ -10,7 +10,7 @@ import (
 )
 
 func NewExpression(w http.ResponseWriter, r *http.Request) {
-	// Получаем список выражений из контекста
+	// Получаем рабочее пространство из контекста
 	ws, ok := tasker.GetWs(r.Context())
 	if !ok {
 		log.Println("ошибка контекста")
@@ -28,6 +28,7 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 	// Читаем тело запроса, в котором записано выражение и тайминги операций
 	var newExrp tasker.NewExpr
 	err := json.NewDecoder(r.Body).Decode(&newExrp)
+	defer r.Body.Close()
 	if err != nil {
 		log.Println("ошибка POST запроса")
 		return
@@ -41,7 +42,6 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 			Div:   1,
 		}
 	}
-	log.Printf("Method: %s, Expression: %s, Timings: %s", r.Method, newExrp.Expr, newExrp.Timings.String())
 	// Парсим выражение, и проверяем его
 	// предполагается, что если парсинг с ошибкой, значит невалидное выражение
 	postfix, err := parsing.Parse(newExrp.Expr)
@@ -53,20 +53,34 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создаем и сохраняем задачу
+	// Создаем и сохраняем задачу в задачах
 	expression := tasker.Expression{
 		UserTask: newExrp.Expr,
 		Postfix:  postfix,
 		Times:    *newExrp.Timings,
 	}
 	expression.CreateId()
+	log.Printf("Method: %s, Expression: %s, Timings: %s, id: %d",
+		r.Method,
+		newExrp.Expr,
+		newExrp.Timings.String(),
+		expression.IdExpression,
+	)
 
 	expressions.Add(&expression)
-
-	// err = SafeJSON("new_expression", expression)
+	// Обновляем рабочее пространство
+	ws.Update()
+	// Сохраняем базу данных
+	err = ws.Save()
+	if err != nil {
+		log.Println("ошибка сохранение после нового задания", err)
+	}
 
 	// Записываем тело ответа
-	body := fmt.Sprintf("Expression:(id): %s\nTimings: %s", expression.Id, expression.Times.String())
+	body := fmt.Sprintf("%d - Expression:(id)\nTimings: %s",
+		expression.IdExpression,
+		expression.Times.String())
 	w.Write([]byte(body))
+	w.Header()
 
 }

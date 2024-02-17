@@ -1,10 +1,10 @@
 package parsing
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 )
 
 var priority = map[string]int{
@@ -54,22 +54,28 @@ func (s *Symbol) createNode() *Node {
 
 // Node - узел выражения
 type Node struct {
-	NodeId     string  `json:"nodeId"`
-	Op         string  `json:"op"` // оператор
-	X          *Node   `json:"x"`
-	Y          *Node   `json:"y"`     // потомки
-	Val        float64 `json:"Val"`   // значение узла
-	Sheet      bool    `json:"sheet"` // флаг листа
-	Calculated bool    `json:"calculated"`
-	Err        error   `json:"err"` // узел родитель
+	NodeId     int          `json:"nodeId"`
+	Op         string       `json:"op"` // оператор
+	X          *Node        `json:"x"`
+	Y          *Node        `json:"y"`     // потомки
+	Val        float64      `json:"Val"`   // значение узла
+	Sheet      bool         `json:"sheet"` // флаг листа
+	Calculated bool         `json:"calculated"`
+	ErrZeroDiv error        `json:"err"`
+	Parent     *Node        `json:"parent"` // узел родитель
+	Mu         sync.RWMutex `json:"-"`
 }
 
 // Создает ID у узла
-func (n *Node) CreateId() string {
-	s := n.String()
-	hasher := sha1.New()
-	hasher.Write([]byte(s))
-	n.NodeId = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+func (n *Node) CreateId() int {
+	n.NodeId = int(time.Now().Unix())
+	/*
+		s := n.String()
+		hasher := sha1.New()
+		hasher.Write([]byte(s))
+		n.NodeId = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+		return n.NodeId
+	*/
 	return n.NodeId
 }
 

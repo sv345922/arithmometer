@@ -12,8 +12,8 @@ type DataBase struct {
 	// список выражений (с таймингами)
 	Expressions *Expressions `json:"expressions"`
 	Tasks       *Tasks       `json:"tasks"`
-	Timings     *Timings     `json:"timings"`
-	mu          sync.Mutex
+	//Timings     *Timings     `json:"timings"`
+	mu sync.Mutex
 }
 
 type additiveJSON interface {
@@ -41,7 +41,7 @@ func SafeJSON[T additiveJSON](name string, expr T) error {
 	return nil
 }
 
-// LoadJSON загружает структуру из db и возвращает её
+// Загружает структуру из db и возвращает её
 func LoadJSON[T additiveJSON](name string) (*T, error) {
 	var result T
 	wd, err := os.Getwd()
@@ -51,6 +51,10 @@ func LoadJSON[T additiveJSON](name string) (*T, error) {
 	}
 	path := wd + "/orchestr/db/" + name + ".json"
 	data, err := os.ReadFile(path)
+	if err != nil {
+		log.Println("ошибка открытия json", err)
+		return nil, err
+	}
 	err = json.Unmarshal(data, result)
 	if err != nil {
 		log.Println(err)

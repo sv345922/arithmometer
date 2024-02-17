@@ -6,17 +6,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
-// Обработчик, отдает клиенту ответ
-func GetAnswer(w http.ResponseWriter, r *http.Request) {
+// Обработчик, принимает от вычислителя ответ
+func GiveAnswer(w http.ResponseWriter, r *http.Request) {
 	// Получаем рабочее пространство из контекста
 	ws, ok := tasker.GetWs(r.Context())
 	if !ok {
 		log.Println("ошибка контекста")
 		return
 	}
-	// Получаем мапу узлов
+	// Получаем узлы
 	nodes := ws.AllNodes
 
 	// Проверить что это запрос POST
@@ -32,20 +33,36 @@ func GetAnswer(w http.ResponseWriter, r *http.Request) {
 		log.Println("ошибка json в ответе")
 		return
 	}
+	id, _ := strconv.Atoi(container.Id)
+	// Обновляем очередь задач с учетом выполненной задачи
+	err = ws.UpdateTasks(id, &container.AnswerN)
+
 	// Получаем узел из списка узлов
-	task := tasker.FindNodes(container.Id, *nodes)
+	task := tasker.FindNodes(id, nodes)
 	if task != nil {
 		w.WriteHeader(http.StatusOK)
 	}
 	// Устанавливаем значения результата вычисления
 	task.Calculated = true
-	// Если ошибка вычислителя это деление на ноль
+	// Если ошибка вычислителя, это деление на ноль
 	if container.AnswerN.Err != nil {
 		log.Println("Ошибка выражения, ", err)
-		task.Err = fmt.Errorf("ошибка вычисления: %v", container.AnswerN.Err)
+		task.ErrZeroDiv = fmt.Errorf("ошибка вычисления: %v", container.AnswerN.Err)
 	}
 	// Установить вычисленное значение
-	task.Calculated = true
-	task.Val = container.AnswerN.Result
-	go ws.Update() // обновление списка задач
+	/*
+		task.Calculated = true
+		task.Val = container.AnswerN.Result
+
+		// обновление очереди задач
+		err, ok := ws.UpdateTasks(id)
+		if err != nil {
+			log.Println("ошибка обновления задач по результатам вычисления", err)
+		}
+	*/
+	if !ok {
+		w.Write([]byte("обновление задач не удалось"))
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 }

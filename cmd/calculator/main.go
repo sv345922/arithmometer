@@ -12,14 +12,16 @@ import (
 )
 
 // запрашивает задачу у оркестратора
-func getTask() (*calc.TaskContainer, error) {
+func getTask(calcId string) (*calc.TaskContainer, error) {
+	// TODO в запрос надо прикладывать id калькулятора
 	container := &calc.TaskContainer{}
-	url := "http://127.0.0.1:8000/gettask"
+	url := "http://127.0.0.1:8000/gettask?id=" + calcId
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +41,10 @@ func getTask() (*calc.TaskContainer, error) {
 // TODO периодическое подтверждения работы
 func main() {
 	log.Print("calculator is runing")
+	calcId := int(time.Now().UnixNano())
 	result := make(chan calc.Answer)
 	for {
-		container, err := getTask()
+		container, err := getTask(fmt.Sprintf("%d", calcId))
 		if err != nil {
 			log.Println("ошибка получения задачи", err)
 			time.Sleep(5 * time.Second)

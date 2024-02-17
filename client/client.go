@@ -8,7 +8,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
+
+// Задача для вычисления
+var expr = "-1+2-3/4+5*4"
 
 func SendNewExpression(exprString string) (string, bool) {
 	//errTotal := errors.New("ошибка отправки нового выражения")
@@ -16,10 +20,10 @@ func SendNewExpression(exprString string) (string, bool) {
 	url := "http://127.0.0.1:8000/newexpression"
 	// Задать тайминги вычислений
 	timing := &Timings{
-		Plus:  5,
-		Minus: 5,
-		Mult:  5,
-		Div:   5,
+		Plus:  6,
+		Minus: 6,
+		Mult:  6,
+		Div:   6,
 	}
 	//timing = nil
 	var expr = NewExp{
@@ -37,7 +41,9 @@ func SendNewExpression(exprString string) (string, bool) {
 		return "", false
 	}
 	fmt.Printf("Постановка задачи\nStatus: %s\nBody:\n%s\n", resp.Status, string(body))
-	return string(body), true
+	id := string(body)[:20]
+	fmt.Println("Задача отправлена")
+	return id, true
 }
 
 // Получает результат вычислений
@@ -50,6 +56,7 @@ func GetResult(id string) (string, string, error) {
 		return "", "", err
 	}
 	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		return "", "", errTotal
 	}
@@ -57,12 +64,14 @@ func GetResult(id string) (string, string, error) {
 	return resp.Status, string(body), nil
 }
 func main() {
-	exprString := "-1+2-3/4+5" // Вычисляемое выражение
-	id, ok := SendNewExpression(exprString)
-	if ok {
-		fmt.Println("Задача отправлена")
-	}
-
+	// отправка выражения
+	id, _ := SendNewExpression(expr)
+	//if ok {
+	//	fmt.Println("Задача отправлена")
+	//}
+	fmt.Println()
+	time.Sleep(10 * time.Second)
+	// получение ответа
 	_, _, err := GetResult(id)
 	if err != nil {
 		log.Fatal(err)

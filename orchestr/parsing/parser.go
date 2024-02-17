@@ -80,21 +80,32 @@ func GetTree(postfix []*Symbol) ([]*Node, *Node, error) {
 		return nil, nil, fmt.Errorf("expression is empty")
 	}
 	stack := new(Stack[Node])
-	for _, symb := range postfix {
-		node := symb.createNode()
+	for _, symbol := range postfix {
+		node := symbol.createNode()
+		// Если узел оператор
 		if node.getType() == "Op" {
+			// если стек пустой, возвращаем ошибку выражения
+			if stack.isEmpty() {
+				return nil, nil, fmt.Errorf("ошибка выражения, оператор без операнда")
+			}
 			y := stack.pop()
 			x := stack.get()
-			// при первом отрицательном числе
+			// если в стеке нет x, создаем вместо него узел с val=0,
+			// обработка унарных операторов
 			if x == nil {
-				node = y
-				node.Val = -node.Val
-			} else {
-				node.X = stack.pop()
+				node.X = &Node{Val: 0, Parent: node}
 				node.Y = y
+				y.Parent = node
+			} else {
+				x = stack.pop()
+				node.X = x
+				node.Y = y
+				x.Parent = node
+				y.Parent = node
 			}
 			stack.push(node)
 		} else {
+			// если узел не оператор, то он число
 			stack.push(node)
 		}
 	}

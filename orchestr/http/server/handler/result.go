@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
-// Обрабатывает запросы клиента о проверке результата вычисллений
+// Обрабатывает запросы клиента о проверке результата вычислений
 func GetResult(w http.ResponseWriter, r *http.Request) {
 	// Получаем рабочее пространство из контекста
 	ws, ok := tasker.GetWs(r.Context())
@@ -26,25 +27,30 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 	// Читаем id из параметров запроса
 	id := r.URL.Query().Get("id")
 	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		log.Println("не найден id в запросе")
 		return
 	}
-	log.Println("Id =", id)
+	log.Println("Id запрошенного выражения =", id)
 
-	// Обновление списка выражений
-	ws.Update()
+	// Обновление списка задач и выражений
+
+	// преобразуем id в число
+	idInt, _ := strconv.Atoi(id)
 	// Поиск выражения в списке выражений
-	expression := tasker.FindExpression(id, expressions)
+	expression := tasker.FindExpression(idInt, expressions)
 
 	// выражение не найдено
 	if expression == nil {
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("id не найден"))
+
+		//log.Println("id не найден") // TODO убрать
 		return
 	}
 	if expression.Calculated() {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(expression.Result))
+		w.Write([]byte(fmt.Sprintf("результат выражения %s = %f", expression.UserTask, expression.Result)))
 		return
 	}
 	w.Write([]byte(fmt.Sprintf("выражение %s еще не посчитано", expression.UserTask)))

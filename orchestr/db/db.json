@@ -1,0 +1,139 @@
+{
+  "expressions": {
+    "dict": {
+      "1708195157301025200": {
+        "Root": {
+          "Val": 0,
+          "calculated": true,
+          "err": null,
+          "nodeId": 1708195157,
+          "op": "",
+          "parent": null,
+          "sheet": true,
+          "x": null,
+          "y": null
+        },
+        "id": 1708195157301025200,
+        "parsError": null,
+        "postfix": [
+          {
+            "Val": "1"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "2"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "3"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "/"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "5"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "*"
+          },
+          {
+            "Val": "+"
+          }
+        ],
+        "result": 0,
+        "status": "",
+        "times": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        },
+        "userTask": "-1+2-3/4+5*4"
+      }
+    },
+    "listExpr": [
+      {
+        "Root": {
+          "Val": 0,
+          "calculated": true,
+          "err": null,
+          "nodeId": 1708195157,
+          "op": "",
+          "parent": null,
+          "sheet": true,
+          "x": null,
+          "y": null
+        },
+        "id": 1708195157301025200,
+        "parsError": null,
+        "postfix": [
+          {
+            "Val": "1"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "2"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "3"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "/"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "5"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "*"
+          },
+          {
+            "Val": "+"
+          }
+        ],
+        "result": 0,
+        "status": "",
+        "times": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        },
+        "userTask": "-1+2-3/4+5*4"
+      }
+    ]
+  },
+  "tasks": {
+    "dict": {},
+    "queue": {
+      "l": 0,
+      "q": []
+    }
+  }
+}

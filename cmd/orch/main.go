@@ -5,6 +5,7 @@ import (
 	"arithmometer/orchestr/inter/tasker"
 	"context"
 	"log"
+	"time"
 )
 
 // создать задачу (выражение) +
@@ -34,5 +35,6 @@ func main() {
 		log.Print("main: %v", err)
 	}
 	ctx := context.WithValue(context.Background(), "ws", ws)
+	time.Sleep(time.Second)
 	server.RunServer(ctx)
 }
