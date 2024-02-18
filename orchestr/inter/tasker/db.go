@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"sync"
 )
 
 type DataBase struct {
@@ -12,7 +11,7 @@ type DataBase struct {
 	Expressions *Expressions `json:"expressions"`
 	Tasks       *Tasks       `json:"tasks"`
 	//Timings     *Timings     `json:"timings"`
-	mu sync.Mutex
+	//mu sync.Mutex
 }
 
 type additiveJSON interface {
@@ -23,7 +22,7 @@ func NewDB() *DataBase {
 	result := DataBase{
 		Expressions: NewExpressions(),
 		Tasks:       NewTasks(),
-		mu:          sync.Mutex{},
+		//mu:          sync.Mutex{},
 	}
 	return &result
 }
@@ -50,23 +49,23 @@ func SafeJSON[T additiveJSON](name string, expr T) error {
 }
 
 // Загружает структуру из db и возвращает её
-func LoadDB(name string) (*DataBase, error) {
-	result := NewDB()
+func LoadDB() (*DataBase, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	path := wd + "\\orchestr\\db\\" + name + ".json"
+	path := wd + "\\orchestr\\db\\" + "db.json"
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Println("ошибка открытия json", err)
 		return nil, err
 	}
-	err = json.Unmarshal(data, result)
+	var result DataBase
+	err = json.Unmarshal(data, &result)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	return result, nil
+	return &result, nil
 }

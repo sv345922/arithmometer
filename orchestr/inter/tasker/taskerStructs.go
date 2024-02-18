@@ -47,6 +47,15 @@ func (t *Tasks) AddTask(task TaskContainer) {
 	t.Queue.Update()
 }
 
+// Проверка на наличие задачи в очереди
+func (t *Tasks) isContent(node *parsing.Node) bool {
+	id := node.NodeId
+	if _, ok := t.Dict[id]; ok {
+		return true
+	}
+	return false
+}
+
 // Удаляет задачу
 func (t *Tasks) RemoveTask(idTask uint64) {
 	t.mu.Lock()

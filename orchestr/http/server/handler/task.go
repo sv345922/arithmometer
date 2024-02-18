@@ -3,7 +3,6 @@ package handler
 import (
 	"arithmometer/orchestr/inter/tasker"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -45,13 +44,13 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 
 	// структура для передачи вычислителю
 	type TaskForCalc struct {
-		Id       string         `json:"id"`
+		Id       uint64         `json:"id"`
 		TaskN    tasker.Task    `json:"taskN"`
 		TimingsN tasker.Timings `json:"timingsN"`
 	}
 	// Создаем структуру для передачи вычислителю
 	container := TaskForCalc{
-		Id:       fmt.Sprintf("%d", task.IdTask),
+		Id:       task.IdTask, //fmt.Sprintf("%d", task.IdTask),
 		TaskN:    task.TaskN,
 		TimingsN: task.TimingsN,
 	}

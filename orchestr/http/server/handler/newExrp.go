@@ -18,8 +18,6 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expressions := ws.Expressions
-
 	// Проверить что это запрос POST
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
@@ -63,7 +61,7 @@ func NewExpression(w http.ResponseWriter, r *http.Request) {
 		expression.IdExpression,
 	)
 
-	expressions.Add(&expression)
+	ws.Expressions.Add(&expression)
 	// Обновляем рабочее пространство
 	ws.Update()
 	// Сохраняем базу данных

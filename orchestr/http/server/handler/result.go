@@ -28,6 +28,7 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("не найден id в запросе"))
 		log.Println("не найден id в запросе")
 		return
 	}
@@ -43,8 +44,8 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 
 	// выражение не найдено
 	if expression == nil {
-		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("id не найден"))
+		//w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if expression.Calculated() {

@@ -21,8 +21,7 @@ func (ws *WorkingSpace) Save() error {
 		Tasks:       ws.Tasks,
 		//Timings:     ws.Timings,
 	}
-	db.mu.Lock()
-	defer db.mu.Unlock()
+
 	err := SafeJSON[DataBase]("db", db)
 	if err != nil {
 		return err
@@ -75,6 +74,10 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 	// ws.Tasks.Queue.Update()
 	return nil
 }
+
+// проходит по списку выражений, создает дерево узлов выражения,
+// включает в рабочее пространство список узлов - ws.AllNodes
+// созадет очередь задач для вычислителей - ws.tasks
 func (ws *WorkingSpace) Update() {
 	// Взять выражения
 	// проверить на существование списка выражений
@@ -87,22 +90,21 @@ func (ws *WorkingSpace) Update() {
 		root, err := parsing.GetTree(expression.Postfix)
 		nodes := make([]*parsing.Node, 0)
 		nodes = GetNodes(root, nodes)
-
 		// Записываем в выражение ошибку, если она возникла при построении дерева
 		// выражения
 		if err != nil {
 			expression.ParsError = err
 			continue
 		}
-
 		// Создаем дерево задач
 		for _, node := range nodes {
 			// Создаем ID для узлов
 			node.CreateId()
+			// проверить наличие задачи в tasks
 			// заполняем словарь узлами
 			ws.AllNodes[node.NodeId] = node
-			// Если узел не рассчитан
-			if node.IsReadyToCalc() {
+			// Если узел не рассчитан и узла с таким ID не в очереди задач
+			if node.IsReadyToCalc() && !ws.Tasks.isContent(node) {
 				// добавляем его в таски
 				ws.Tasks.AddTask(TaskContainer{
 					IdTask:   node.NodeId,

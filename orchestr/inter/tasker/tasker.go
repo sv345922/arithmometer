@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 )
 
@@ -30,8 +29,11 @@ func NewExpressions() *Expressions {
 
 // Добавляет выражение в список выражений
 func (e *Expressions) Add(expression *Expression) {
+	l_prev := len(e.Dict)
 	e.Dict[expression.IdExpression] = expression
-	e.ListExpr = append(e.ListExpr, expression)
+	if l_prev+1 == len(e.Dict) {
+		e.ListExpr = append(e.ListExpr, expression)
+	}
 }
 
 // возвращает выражение из списка задач
@@ -89,57 +91,41 @@ func RunTasker() (*WorkingSpace, error) {
 // Восстанавливает рабочее пространство из сохраненной базы данных
 func restoreTaskExpr(ws *WorkingSpace) error {
 	// Проверка существования БД  и создание пустой бд при необходимости
-	err := checkDb()
-	if err != nil {
-		log.Println("Ошибка проверки/создания бд", err)
-	}
+	//err := checkDb()
+	//if err != nil {
+	//	log.Println("Ошибка проверки/создания бд", err)
+	//}
 
 	// Загрузка сохраненной БД
-	savedDb, err := LoadDB("db")
+	savedDb, err := LoadDB()
 	if err != nil {
 		log.Println("ошибка загрузки бд", err)
 	}
 	ws.Expressions = savedDb.Expressions
 	ws.Tasks = savedDb.Tasks
-
-	/*
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Println(err)
-		}
-		path := wd + "\\orchestr\\db\\" + "db.json"
-		data, err := os.ReadFile(path)
-		if err != nil {
-			log.Println("ошибка открытия json", err)
-		}
-		err = json.Unmarshal(data, result)
-		if err != nil {
-			log.Println(err)
-		}
-	*/
 	return nil
 }
 
-// Проверяет существование базы данных и создает пустую БД при необходимости
-func checkDb() error {
+// Cоздает файл пустой БД
+func CreateEmptyDb() error {
 	// получить рабочую папку
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+	//wd, err := os.Getwd()
+	//if err != nil {
+	//	log.Println(err)
+	//	return err
+	//}
 	// путь файла базы данных
-	path := wd + "\\orchestr\\db\\db.json"
+	//path := wd + "\\orchestr\\db\\db.json"
 
-	// проверка на существование файла
-	_, fileError := os.Stat(path)
-	// если он существует выходим
-	if os.IsExist(fileError) {
-		fmt.Printf("бд существует") // TODO удалить
-		return nil
-	}
-	// иначе создаем файл с пустой БД
-	err = SafeJSON[DataBase]("db", *NewDB())
+	//// проверка на существование файла
+	//_, fileError := os.Stat(path)
+	//// если он существует выходим
+	//if os.IsNotExist(fileError) {
+	//	fmt.Printf("бд существует") // TODO удалить
+	//	return nil
+	//}
+	// Создаем файл с пустой БД
+	err := SafeJSON[DataBase]("db", *NewDB())
 	if err != nil {
 		log.Println("Ошибка создания пустой БД")
 	}

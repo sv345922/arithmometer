@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 )
 
 // Задача для вычисления
@@ -64,19 +63,18 @@ func GetResult(id string) (string, string, error) {
 }
 func main() {
 	// отправка выражения
-	if len(os.Args) > 1 {
-		expr = os.Args[1]
-	}
-	id, _ := SendNewExpression(expr)
-	//if ok {
-	//	fmt.Println("Задача отправлена")
+	//flag.Parse()
+	//if len(os.Args) > 1 {
+	//	expr = os.Args[1]
 	//}
-	fmt.Println()
+	//id, _ := SendNewExpression(expr)
+	//fmt.Println()
+	//
 	//time.Sleep(10 * time.Second)
-	// получение ответа
-	_ = id
+	//// получение ответа
 	//_, _, err := GetResult(id)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
+	GetResult("250")
 }
