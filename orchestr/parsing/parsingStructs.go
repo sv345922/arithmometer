@@ -78,6 +78,18 @@ func (n *Node) CreateId() uint64 {
 	*/
 	return n.NodeId
 }
+
+// проверка на готовность к вычислению
+func (n *Node) IsReadyToCalc() bool {
+	if !n.Calculated {
+		if n.X.Calculated && n.Y.Calculated {
+			return true
+		}
+	}
+	return false
+}
+
+// создает id
 func GetId(s string) uint64 {
 	res := uint64(0)
 	for _, v := range []byte(s) {

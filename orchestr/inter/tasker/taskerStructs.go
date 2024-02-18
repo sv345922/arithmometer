@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
 // Контейнер задач для отправки вычислителю
@@ -15,6 +16,7 @@ type TaskContainer struct {
 	Err      error      `json:"err"`      // ошибка
 	TimingsN Timings    `json:"timingsN"` // тайминги
 	CalcId   int        `json:"calcId"`   // id вычислителя задачи
+	Deadline time.Time  `json:"deadline"`
 	mu       sync.Mutex `json:"-"`
 }
 

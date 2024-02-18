@@ -4,6 +4,7 @@ import (
 	"arithmometer/orchestr/parsing"
 	"fmt"
 	"log"
+	"time"
 )
 
 type WorkingSpace struct {
@@ -101,11 +102,13 @@ func (ws *WorkingSpace) Update() {
 			// заполняем словарь узлами
 			ws.AllNodes[node.NodeId] = node
 			// Если узел не рассчитан
-			if !node.Calculated {
+			if node.IsReadyToCalc() {
 				// добавляем его в таски
 				ws.Tasks.AddTask(TaskContainer{
-					IdTask: node.NodeId,
-					TaskN:  Task{X: node.X.Val, Y: node.X.Val, Op: node.Op},
+					IdTask:   node.NodeId,
+					TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
+					Deadline: time.Now().Add(time.Hour * 1000),
+					TimingsN: expression.Times,
 				})
 			}
 		}

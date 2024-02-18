@@ -1,1 +1,189 @@
-{"expressions":{"dict":{},"listExpr":[]},"tasks":{"queue":{"q":[],"l":0},"dict":{}}}
+{
+  "expressions": {
+    "dict": {
+      "574": {
+        "id": 574,
+        "parsError": null,
+        "postfix": [
+          {
+            "Val": "1"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "2"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "3"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "5"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "/"
+          },
+          {
+            "Val": "6"
+          },
+          {
+            "Val": "*"
+          },
+          {
+            "Val": "-"
+          }
+        ],
+        "result": 0,
+        "rootId": 3446,
+        "status": "",
+        "times": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        },
+        "userTask": "-1+2-3/(4+5)* 6"
+      }
+    },
+    "listExpr": [
+      {
+        "id": 574,
+        "parsError": null,
+        "postfix": [
+          {
+            "Val": "1"
+          },
+          {
+            "Val": "-"
+          },
+          {
+            "Val": "2"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "3"
+          },
+          {
+            "Val": "4"
+          },
+          {
+            "Val": "5"
+          },
+          {
+            "Val": "+"
+          },
+          {
+            "Val": "/"
+          },
+          {
+            "Val": "6"
+          },
+          {
+            "Val": "*"
+          },
+          {
+            "Val": "-"
+          }
+        ],
+        "result": 0,
+        "rootId": 3446,
+        "status": "",
+        "times": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        },
+        "userTask": "-1+2-3/(4+5)* 6"
+      }
+    ]
+  },
+  "tasks": {
+    "dict": {
+      "891": {
+        "calcId": 0,
+        "deadline": "2024-03-31T01:40:54.7514532+03:00",
+        "err": null,
+        "id": 891,
+        "taskN": {
+          "op": "-",
+          "x": 0,
+          "y": 1
+        },
+        "timingsN": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        }
+      },
+      "897": {
+        "calcId": 0,
+        "deadline": "2024-03-31T01:40:54.7514532+03:00",
+        "err": null,
+        "id": 897,
+        "taskN": {
+          "op": "+",
+          "x": 4,
+          "y": 5
+        },
+        "timingsN": {
+          "div": 6,
+          "minus": 6,
+          "mult": 6,
+          "plus": 6
+        }
+      }
+    },
+    "queue": {
+      "l": 2,
+      "q": [
+        {
+          "calcId": 0,
+          "deadline": "2024-03-31T01:40:54.7514532+03:00",
+          "err": null,
+          "id": 897,
+          "taskN": {
+            "op": "+",
+            "x": 4,
+            "y": 5
+          },
+          "timingsN": {
+            "div": 6,
+            "minus": 6,
+            "mult": 6,
+            "plus": 6
+          }
+        },
+        {
+          "calcId": 0,
+          "deadline": "2024-03-31T01:40:54.7514532+03:00",
+          "err": null,
+          "id": 891,
+          "taskN": {
+            "op": "-",
+            "x": 0,
+            "y": 1
+          },
+          "timingsN": {
+            "div": 6,
+            "minus": 6,
+            "mult": 6,
+            "plus": 6
+          }
+        }
+      ]
+    }
+  }
+}

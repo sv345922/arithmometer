@@ -10,7 +10,7 @@ import (
 )
 
 // Задача для вычисления
-var expr = "-1+2-3/4+5* 6"
+var expr = "-1+2-3/(4+5)* 6"
 
 func SendNewExpression(exprString string) (string, bool) {
 	//errTotal := errors.New("ошибка отправки нового выражения")
