@@ -37,7 +37,7 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	// Обновляем очередь задач, в т.ч. чтобы убрать дедлайны у просроченых
+	// Обновляем очередь задач, в т.ч. чтобы убрать дедлайны у просроченных
 	ws.Tasks.Queue.Update()
 	// Получаем задачу из очереди
 	task := ws.Tasks.GetTask(calcId)
@@ -63,7 +63,7 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 	timeout := d[op] * 150 / 100
 	deadline := time.Now().Add(time.Second * time.Duration(timeout))
 	task.Deadline = deadline
-	ws.Tasks.Dict[task.IdTask].Deadline = deadline
+	//ws.Tasks.Dict[task.IdTask].Deadline = deadline
 	// обновляем очередь
 	ws.Tasks.Queue.Update()
 	// Сохраняем БД

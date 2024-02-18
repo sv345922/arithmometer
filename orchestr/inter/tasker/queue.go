@@ -12,11 +12,11 @@ type Dequeue struct {
 	mu sync.Mutex
 }
 
-func NewDequeue() Dequeue {
+func NewDequeue() *Dequeue {
 	result := Dequeue{}
 	result.Q = make([]*TaskContainer, 0)
 	result.L = 0
-	return result
+	return &result
 }
 func (d *Dequeue) AddBack(newVal *TaskContainer) {
 	d.Q = append(d.Q, newVal)

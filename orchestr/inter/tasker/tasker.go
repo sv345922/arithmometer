@@ -51,17 +51,9 @@ func FindExpression(id uint64, e *Expressions) *Expression {
 // .Queue - очередь задач
 func NewTasks() *Tasks {
 	res := Tasks{}
-	res.Dict = make(map[uint64]*TaskContainer)
+	//res.Dict = make(map[uint64]*TaskContainer)
 	res.Queue = NewDequeue()
 	return &res
-}
-
-// возвращает задачу из списка (мапы) задач
-func FindNodes(id uint64, n map[uint64]*parsing.Node) *parsing.Node {
-	if node, ok := n[id]; ok {
-		return node
-	}
-	return nil
 }
 
 // Создает рабочее пространство и сохраняет базу данных
@@ -90,12 +82,6 @@ func RunTasker() (*WorkingSpace, error) {
 
 // Восстанавливает рабочее пространство из сохраненной базы данных
 func restoreTaskExpr(ws *WorkingSpace) error {
-	//TODO Проверка существования БД  и создание пустой БД при необходимости
-	//err := checkDb()
-	//if err != nil {
-	//	log.Println("Ошибка проверки/создания бд", err)
-	//}
-
 	// Загрузка сохраненной БД
 	savedDb, err := LoadDB()
 	if err != nil {
@@ -108,21 +94,7 @@ func restoreTaskExpr(ws *WorkingSpace) error {
 
 // Cоздает файл пустой БД
 func CreateEmptyDb() error {
-	// получить рабочую папку
-	//wd, err := os.Getwd()
-	//if err != nil {
-	//	log.Println(err)
-	//	return err
-	//}
-	// путь файла базы данных
-	//path := wd + "\\orchestr\\db\\db.json"
 
-	//// проверка на существование файла
-	//_, fileError := os.Stat(path)
-	//// если он существует выходим
-	//if os.IsNotExist(fileError) {
-	//	return nil
-	//}
 	// Создаем файл с пустой БД
 	err := SafeJSON[DataBase]("db", *NewDB())
 	if err != nil {

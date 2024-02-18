@@ -4,6 +4,7 @@ import (
 	"arithmometer/orchestr/parsing"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type WorkingSpace struct {
 	Expressions *Expressions             `json:"expressions"`
 	Timings     *Timings                 `json:"timings"`
 	AllNodes    map[uint64]*parsing.Node // ключ id узла
+	mu          sync.RWMutex
 }
 
 // Сохраняет рабочее пространство
@@ -19,7 +21,6 @@ func (ws *WorkingSpace) Save() error {
 	db := DataBase{
 		Expressions: ws.Expressions,
 		Tasks:       ws.Tasks,
-		//Timings:     ws.Timings,
 	}
 
 	err := SafeJSON[DataBase]("db", db)
@@ -38,15 +39,18 @@ func (ws *WorkingSpace) Save() error {
 // Добавляет новую задачу в начало очереди задач.
 func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 	defer ws.Tasks.Queue.Update()
+	ws.mu.RLock()
+	// находим узел соответсвующей решенной задаче
 	currentNode, ok := ws.AllNodes[IdTask]
 	if !ok {
 		log.Println("не найден узел")
 	}
+	ws.mu.RUnlock()
 	// Проверка деления на ноль и обновление выражения
 	// с удалением не требующих решения задач,
 	// а также изменение статуса выражения
 	if answer.Err != nil {
-		log.Println("в выражении присутсвует деление на ноль")
+		log.Println("в выражении присутствует деление на ноль")
 		currentNode.ErrZeroDiv = answer.Err
 		ws.updateWhileZero(currentNode)
 		return nil
@@ -82,6 +86,8 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 // включает в рабочее пространство список узлов - ws.AllNodes
 // созадет очередь задач для вычислителей - ws.tasks
 func (ws *WorkingSpace) Update() {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
 	// Взять выражения
 	// проверить на существование списка выражений
 	if ws.Expressions == nil {
@@ -132,11 +138,13 @@ func GetNodes(root *parsing.Node, nodes []*parsing.Node) []*parsing.Node {
 	return nodes
 }
 
-// Проверяет на готовность родительский узел, при готовности добавляет его в очередь задач
+// Проверяет на готовность узел, при готовности добавляет его в очередь задач
 func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
 	node.Mu.RLock()
 	defer node.Mu.RUnlock()
+	// Если x и y вычислены
 	if node.X.Calculated && node.Y.Calculated {
+		// создаем задачу и кладем её в очередь
 		task := &TaskContainer{
 			IdTask: node.NodeId,
 			TaskN: Task{
@@ -169,9 +177,9 @@ func (ws *WorkingSpace) updateWhileZero(node *parsing.Node) {
 		}
 	}
 	// Удаляем задачи с ошибкой
-	for key, val := range ws.Tasks.Dict {
+	for _, val := range ws.Tasks.Queue.Q {
 		if val.Err != nil {
-			ws.Tasks.RemoveTask(key)
+			ws.Tasks.RemoveTask(val.IdTask)
 		}
 	}
 	// Сохранение рабочего пространства

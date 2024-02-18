@@ -38,7 +38,6 @@ func GetResult(w http.ResponseWriter, r *http.Request) {
 
 	// преобразуем id в число
 	idInt, _ := strconv.ParseUint(id, 10, 64)
-	//idInt, _ := strconv.Atoi(id)
 	// Поиск выражения в списке выражений
 	expression := tasker.FindExpression(idInt, expressions)
 

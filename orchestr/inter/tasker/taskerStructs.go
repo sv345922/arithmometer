@@ -8,10 +8,9 @@ import (
 	"time"
 )
 
-// Контейнер задач для отправки вычислителю
+// Контейнер задачи для очереди задач
 type TaskContainer struct {
-	// идентификатор задачи, передается вычислителю
-	IdTask   uint64     `json:"id"`
+	IdTask   uint64     `json:"id"`       // идентификатор задачи, передается вычислителю
 	TaskN    Task       `json:"taskN"`    // задача
 	Err      error      `json:"err"`      // ошибка
 	TimingsN Timings    `json:"timingsN"` // тайминги
@@ -32,9 +31,9 @@ type Task struct {
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
 	// TODO элементы в очереди не равны элементам в словаре проверить
-	Queue Dequeue                   `json:"queue"`
-	Dict  map[uint64]*TaskContainer `json:"dict"` // ключ IdTask
-	mu    sync.RWMutex              `json:"-"`
+	Queue *Dequeue `json:"queue"`
+	//Dict  map[uint64]*TaskContainer `json:"dict"` // ключ IdTask
+	mu sync.RWMutex `json:"-"`
 }
 
 // Добавляет задачу в список задач и очередь
@@ -42,17 +41,18 @@ func (t *Tasks) AddTask(task *TaskContainer) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	// Добавляем в словарь
-	t.Dict[task.IdTask] = task
+	//t.Dict[task.IdTask] = task
 	// Добавляем в начало очередь
 	t.Queue.AddFront(task)
-	t.Queue.Update()
 }
 
 // Проверка на наличие задачи в очереди
 func (t *Tasks) isContent(node *parsing.Node) bool {
 	id := node.NodeId
-	if _, ok := t.Dict[id]; ok {
-		return true
+	for _, val := range t.Queue.Q {
+		if val.IdTask == id {
+			return true
+		}
 	}
 	return false
 }
@@ -64,7 +64,7 @@ func (t *Tasks) RemoveTask(idTask uint64) {
 	// удаление из очереди
 	t.Queue.removeTask(idTask) // Пока пропускаем ошибку
 	// удаление из словаря
-	delete(t.Dict, idTask)
+	//delete(t.Dict, idTask)
 }
 
 // Возвращает задачу (без удаления) для передачи ее вычислителю,
@@ -86,8 +86,6 @@ func (t *Tasks) GetTask(calcId int) *TaskContainer {
 	task.mu.Lock()
 	if task.CalcId == 0 {
 		task.CalcId = calcId
-		// записываем тоже в словарь TODO но это не правильно
-		t.Dict[task.IdTask].CalcId = calcId
 		task.mu.Unlock()
 		t.Queue.AddFront(task)
 		return task
@@ -147,13 +145,6 @@ func (e *Expression) CreateId() {
 		s = s + symbol.Val
 	}
 	e.IdExpression = parsing.GetId(s)
-
-	/*
-
-		hasher := sha1.New()
-		hasher.Write([]byte(s))
-		e.IdExpression = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	*/
 }
 
 // Определяет, вычислено ли выражение
