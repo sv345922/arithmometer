@@ -1,7 +1,6 @@
 package tasker
 
 import (
-	"arithmometer/orchestr/parsing"
 	"encoding/json"
 	"log"
 	"os"
@@ -17,7 +16,16 @@ type DataBase struct {
 }
 
 type additiveJSON interface {
-	*Expression | []*parsing.Node | *parsing.Node | []*parsing.Symbol | Timings | map[string]*Expression | DataBase
+	DataBase
+}
+
+func NewDB() *DataBase {
+	result := DataBase{
+		Expressions: NewExpressions(),
+		Tasks:       NewTasks(),
+		mu:          sync.Mutex{},
+	}
+	return &result
 }
 
 // SafeJSON Сохраняет структуру в базе данных, в папке db
@@ -42,8 +50,8 @@ func SafeJSON[T additiveJSON](name string, expr T) error {
 }
 
 // Загружает структуру из db и возвращает её
-func LoadJSON[T additiveJSON](name string) (*T, error) {
-	var result T
+func LoadDB(name string) (*DataBase, error) {
+	result := NewDB()
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
@@ -60,5 +68,5 @@ func LoadJSON[T additiveJSON](name string) (*T, error) {
 		log.Println(err)
 		return nil, err
 	}
-	return &result, nil
+	return result, nil
 }

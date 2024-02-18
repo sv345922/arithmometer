@@ -92,7 +92,8 @@ func (n *Node) IsReadyToCalc() bool {
 // создает id
 func GetId(s string) uint64 {
 	res := uint64(0)
-	for _, v := range []byte(s) {
+	for i, v := range []byte(s) {
+		res += uint64(i)
 		res += uint64(v)
 	}
 	return res

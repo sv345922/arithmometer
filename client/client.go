@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 // Задача для вычисления
-var expr = "-1+2-3/(4+5)* 6"
+var expr = "-1+2-3/(4+5) * 6 -7"
 
 func SendNewExpression(exprString string) (string, bool) {
 	//errTotal := errors.New("ошибка отправки нового выражения")
@@ -63,6 +64,9 @@ func GetResult(id string) (string, string, error) {
 }
 func main() {
 	// отправка выражения
+	if len(os.Args) > 1 {
+		expr = os.Args[1]
+	}
 	id, _ := SendNewExpression(expr)
 	//if ok {
 	//	fmt.Println("Задача отправлена")

@@ -3,7 +3,6 @@ package tasker
 import (
 	"arithmometer/orchestr/parsing"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -65,94 +64,84 @@ func FindNodes(id uint64, n map[uint64]*parsing.Node) *parsing.Node {
 
 // Создает рабочее пространство и сохраняет базу данных
 func RunTasker() (*WorkingSpace, error) {
-	tasks := NewTasks()
-	expressions := NewExpressions()
-	timings := &Timings{}
-	allNodes := make(map[uint64]*parsing.Node) // ключом является id узла
-	/*
-		// Проверка на существование сохраненной базы данных с созданием пустого файла
-		if ok, err := checkDb(); !ok {
-			if err != nil {
-				return nil, err
-			}
-		}
-	*/
-	ws := WorkingSpace{
-		Tasks:       tasks,
-		Expressions: expressions,
-		Timings:     timings,
-		AllNodes:    allNodes,
+
+	ws := &WorkingSpace{
+		Tasks:       NewTasks(),
+		Expressions: NewExpressions(),
+		Timings:     &Timings{},
+		AllNodes:    make(map[uint64]*parsing.Node), // ключом является id узла
 	}
 	// Восстанавливаем выражения и задачи из базы данных
-	err := restoreTaskExpr(ws.Tasks, ws.Expressions)
+	err := restoreTaskExpr(ws)
 	if err != nil {
 		log.Println("ошибка восстановления из БД", err)
 	}
-	// Если база данных не содержит задач, но содержит выражения
-	// создаем очередь задач из выражений
-	if ws.Tasks.Queue.L == 0 {
-		ws.Update()
-	}
 
+	// обновляем ws
+	ws.Update()
 	err = ws.Save()
 	if err != nil {
 		err = fmt.Errorf("ошибка сохранения БД: %v", err)
 	}
-	return &ws, err
+	return ws, err
 }
 
 // Восстанавливает рабочее пространство из сохраненной базы данных
-func restoreTaskExpr(tasks *Tasks, expressions *Expressions) error {
-	var result = &DataBase{
-		Expressions: NewExpressions(),
-		Tasks:       NewTasks(),
-		//Timings:     &Timings{0, 0, 0, 0},
-		mu: sync.Mutex{},
-	}
-	wd, err := os.Getwd()
+func restoreTaskExpr(ws *WorkingSpace) error {
+	// Проверка существования БД  и создание пустой бд при необходимости
+	err := checkDb()
 	if err != nil {
-		log.Println(err)
-	}
-	path := wd + "\\orchestr\\db\\" + "db.json"
-	data, err := os.ReadFile(path)
-	if err != nil {
-		log.Println("ошибка открытия json", err)
-	}
-	err = json.Unmarshal(data, result)
-	if err != nil {
-		log.Println(err)
+		log.Println("Ошибка проверки/создания бд", err)
 	}
 
-	db := result
+	// Загрузка сохраненной БД
+	savedDb, err := LoadDB("db")
 	if err != nil {
-		log.Print(err)
-		return err
+		log.Println("ошибка загрузки бд", err)
 	}
-	tasks = db.Tasks
-	expressions = db.Expressions
+	ws.Expressions = savedDb.Expressions
+	ws.Tasks = savedDb.Tasks
+
+	/*
+		wd, err := os.Getwd()
+		if err != nil {
+			log.Println(err)
+		}
+		path := wd + "\\orchestr\\db\\" + "db.json"
+		data, err := os.ReadFile(path)
+		if err != nil {
+			log.Println("ошибка открытия json", err)
+		}
+		err = json.Unmarshal(data, result)
+		if err != nil {
+			log.Println(err)
+		}
+	*/
 	return nil
 }
 
-// Проверяет существование базы данных и создает пустой файл при необходимости
-func checkDb() (bool, error) {
+// Проверяет существование базы данных и создает пустую БД при необходимости
+func checkDb() error {
+	// получить рабочую папку
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Println(err)
-		return false, err
+		return err
 	}
+	// путь файла базы данных
 	path := wd + "\\orchestr\\db\\db.json"
 
-	fmt.Println("path=", path)
-
+	// проверка на существование файла
 	_, fileError := os.Stat(path)
+	// если он существует выходим
 	if os.IsExist(fileError) {
-		return true, nil
+		fmt.Printf("бд существует") // TODO удалить
+		return nil
 	}
-	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
+	// иначе создаем файл с пустой БД
+	err = SafeJSON[DataBase]("db", *NewDB())
 	if err != nil {
-		log.Println("ошибка создания файла")
-		return false, err
+		log.Println("Ошибка создания пустой БД")
 	}
-	log.Println("создан файл базы данных")
-	return true, file.Close()
+	return nil
 }
