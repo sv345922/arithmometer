@@ -19,7 +19,7 @@ import (
 // вернуть ответ клиенту при запросе
 
 func main() {
-
+	tasker.CreateEmptyDb() // создать пустую базу
 	// сделать список задач для вычисления
 	ws, err := tasker.RunTasker()
 	if err != nil {

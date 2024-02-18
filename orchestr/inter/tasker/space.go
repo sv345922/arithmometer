@@ -26,21 +26,27 @@ func (ws *WorkingSpace) Save() error {
 	if err != nil {
 		return err
 	}
-	log.Println("база данных сохранена")
+	log.Println("DB saved")
 	return nil
 }
 
-// При получении выполненого задания
-// Проверяем на наличие ошибки деления на ноль
-// Обновляет очередь задач
-// Проверяет список выражений и если оно вычислено, обновляет его статус
-// Добавляет новую задачу в начало очереди задач, если выражение не корень выражения
+// При получении выполненого задания,
+// проверяем на наличие ошибки деления на ноль.
+// Записывает результат в узел. и изменяет статус на вычислено
+// Обновляет очередь задач.
+// Проверяет список выражений и если оно вычислено, обновляет его статус.
+// Добавляет новую задачу в начало очереди задач.
 func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
-	currentNode := ws.AllNodes[IdTask]
+	defer ws.Tasks.Queue.Update()
+	currentNode, ok := ws.AllNodes[IdTask]
+	if !ok {
+		log.Println("не найден узел")
+	}
 	// Проверка деления на ноль и обновление выражения
 	// с удалением не требующих решения задач,
 	// а также изменение статуса выражения
 	if answer.Err != nil {
+		log.Println("в выражении присутсвует деление на ноль")
 		currentNode.ErrZeroDiv = answer.Err
 		ws.updateWhileZero(currentNode)
 		return nil
@@ -48,8 +54,6 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 	result := answer.Result
 	// Удаляем задачу из очереди
 	ws.Tasks.RemoveTask(IdTask)
-	// удаляем задачу из словаря узлов TODO (надо ли)
-	delete(ws.AllNodes, IdTask)
 	// записываем результат вычисления в узел
 	currentNode.Val = result
 	currentNode.Calculated = true
@@ -64,14 +68,13 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 		return nil
 	}
 	// проверка готовности узла и добавление в очередь задач
-	for checkAndUpdateParent(ws, parent) {
-		parent = parent.Parent
-		if parent == nil {
-			ws.Expressions.UpdateStatus(parent, "done", 0)
+	for checkAndUpdateNodeToTasks(ws, parent) {
+		if parent.Parent == nil {
+			// ws.Expressions.UpdateStatus(parent, "done", 0)
 			break
 		}
+		parent = parent.Parent
 	}
-	// ws.Tasks.Queue.Update()
 	return nil
 }
 
@@ -106,7 +109,7 @@ func (ws *WorkingSpace) Update() {
 			// Если узел не рассчитан и узла с таким ID не в очереди задач
 			if node.IsReadyToCalc() && !ws.Tasks.isContent(node) {
 				// добавляем его в таски
-				ws.Tasks.AddTask(TaskContainer{
+				ws.Tasks.AddTask(&TaskContainer{
 					IdTask:   node.NodeId,
 					TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 					Deadline: time.Now().Add(time.Hour * 1000),
@@ -130,16 +133,16 @@ func GetNodes(root *parsing.Node, nodes []*parsing.Node) []*parsing.Node {
 }
 
 // Проверяет на готовность родительский узел, при готовности добавляет его в очередь задач
-func checkAndUpdateParent(ws *WorkingSpace, parent *parsing.Node) bool {
-	parent.Mu.RLock()
-	defer parent.Mu.RUnlock()
-	if parent.X.Calculated && parent.Y.Calculated {
-		task := TaskContainer{
-			IdTask: parent.NodeId,
+func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
+	node.Mu.RLock()
+	defer node.Mu.RUnlock()
+	if node.X.Calculated && node.Y.Calculated {
+		task := &TaskContainer{
+			IdTask: node.NodeId,
 			TaskN: Task{
-				X:  parent.X.Val,
-				Y:  parent.Y.Val,
-				Op: parent.Op,
+				X:  node.X.Val,
+				Y:  node.Y.Val,
+				Op: node.Op,
 			},
 			Err:      nil,
 			TimingsN: *ws.Timings,

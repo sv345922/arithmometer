@@ -90,7 +90,7 @@ func RunTasker() (*WorkingSpace, error) {
 
 // Восстанавливает рабочее пространство из сохраненной базы данных
 func restoreTaskExpr(ws *WorkingSpace) error {
-	// Проверка существования БД  и создание пустой бд при необходимости
+	//TODO Проверка существования БД  и создание пустой БД при необходимости
 	//err := checkDb()
 	//if err != nil {
 	//	log.Println("Ошибка проверки/создания бд", err)
@@ -121,7 +121,6 @@ func CreateEmptyDb() error {
 	//_, fileError := os.Stat(path)
 	//// если он существует выходим
 	//if os.IsNotExist(fileError) {
-	//	fmt.Printf("бд существует") // TODO удалить
 	//	return nil
 	//}
 	// Создаем файл с пустой БД

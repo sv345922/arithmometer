@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 // Задача для вычисления
@@ -24,11 +25,11 @@ func SendNewExpression(exprString string) (string, bool) {
 		Div:   6,
 	}
 	//timing = nil
-	var expr = NewExp{
+	var exprst = NewExp{
 		Expr:    exprString,
 		Timings: timing,
 	}
-	data, _ := json.Marshal(expr) //ошибку пропускаем
+	data, _ := json.Marshal(exprst) //ошибку пропускаем
 	r := bytes.NewReader(data)
 	resp, err := http.Post(url, "application/json", r)
 	if err != nil {
@@ -64,11 +65,12 @@ func GetResult(id string) (string, string, error) {
 func main() {
 	// отправка выражения
 	//flag.Parse()
-	//if len(os.Args) > 1 {
-	//	expr = os.Args[1]
-	//}
-	//id, _ := SendNewExpression(expr)
-	//fmt.Println()
+	if len(os.Args) > 1 {
+		expr = os.Args[1]
+	}
+	id, _ := SendNewExpression(expr)
+	fmt.Println()
+	_ = id
 	//
 	//time.Sleep(10 * time.Second)
 	//// получение ответа
@@ -76,5 +78,5 @@ func main() {
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
-	GetResult("250")
+	//GetResult("250")
 }

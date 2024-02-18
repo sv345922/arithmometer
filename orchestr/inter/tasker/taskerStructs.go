@@ -31,19 +31,20 @@ type Task struct {
 // .Dict - словарь задач, ключ IdExpression
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
+	// TODO элементы в очереди не равны элементам в словаре проверить
 	Queue Dequeue                   `json:"queue"`
 	Dict  map[uint64]*TaskContainer `json:"dict"` // ключ IdTask
 	mu    sync.RWMutex              `json:"-"`
 }
 
-// Добавляет задачу в список задач
-func (t *Tasks) AddTask(task TaskContainer) {
+// Добавляет задачу в список задач и очередь
+func (t *Tasks) AddTask(task *TaskContainer) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	// Добавляем в словарь
-	t.Dict[task.IdTask] = &task
+	t.Dict[task.IdTask] = task
 	// Добавляем в начало очередь
-	t.Queue.AddFront(&task)
+	t.Queue.AddFront(task)
 	t.Queue.Update()
 }
 
@@ -72,17 +73,21 @@ func (t *Tasks) RemoveTask(idTask uint64) {
 func (t *Tasks) GetTask(calcId int) *TaskContainer {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	// берем последний элемент очереди
-	task, err := t.Queue.PopBack()
 	// если очередь пуста, возвращаем nil
-	if err != nil {
-		log.Println(err)
+	if t.Queue.L == 0 {
+		log.Println("очередь задач пустая")
 		return nil
 	}
+	// берем последний элемент очереди
+	task, _ := t.Queue.PopBack()
+
 	// если последний элемент очереди не взят вычислителем в обработку, возвращаем его
+	// сам элемент кладем в начало очереди, ставим id вычислителя
 	task.mu.Lock()
-	if task.CalcId != 0 {
+	if task.CalcId == 0 {
 		task.CalcId = calcId
+		// записываем тоже в словарь TODO но это не правильно
+		t.Dict[task.IdTask].CalcId = calcId
 		task.mu.Unlock()
 		t.Queue.AddFront(task)
 		return task
@@ -122,14 +127,6 @@ func (e *Expressions) UpdateStatus(root *parsing.Node, status string, result flo
 	}
 }
 
-/*
-	func (e *Expressions) Remove(id string) error {
-		e.mu.Lock()
-		defer e.mu.Unlock()
-		delete(e.dict, id)
-		e.listExpr = append(e.listExpr[:index], e.listExpr[index+1:]...)
-	}
-*/
 // Выражение
 type Expression struct {
 	IdExpression uint64            `json:"id"`        // id запроса клиента
