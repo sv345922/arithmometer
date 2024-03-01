@@ -3,7 +3,6 @@ package main
 import (
 	"arithmometer/orchestr/http/server"
 	"arithmometer/orchestr/inter/tasker"
-	"context"
 	"log"
 )
 
@@ -26,6 +25,5 @@ func main() {
 	if err != nil {
 		log.Print("main: %v", err)
 	}
-	ctx := context.WithValue(context.Background(), "ws", ws)
-	server.RunServer(ctx)
+	server.RunServer(ws)
 }
