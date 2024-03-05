@@ -19,10 +19,11 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 			w.Write([]byte("требуется метод Get"))
 			return
 		}
-		// Читаем id из параметров запроса
+		// Читаем id вычислителя из параметров запроса
 		id := r.URL.Query().Get("id")
 		if id == "" {
 			log.Println("не найден id в запросе вычислителя")
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		log.Println("Запрос задачи от вычислителя с id =", id)
@@ -32,8 +33,8 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// Обновляем очередь задач, в т.ч. чтобы убрать дедлайны у просроченных
-		ws.Tasks.Queue.Update()
+		// Обновляем очередь задач, чтобы убрать дедлайны у просроченных
+		ws.Tasks.Queue.UpdateWithTimeouts()
 		// Получаем задачу из очереди
 		task := ws.Tasks.GetTask(calcId)
 		if task == nil {
@@ -45,7 +46,6 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 
 		// записываем дедлайн для узла с учетом времени выполнения операции
 		// достаем оператор из задачи
-		op := task.TaskN.Op
 		// словарь таймигнгов операций
 		d := map[string]int{
 			"+": task.TimingsN.Plus,
@@ -55,12 +55,8 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 		}
 		// дедлайн равен времени выполнения операции + 50%, статус задач обновляется при
 		// обновлении очереди
-		timeout := d[op] * 150 / 100
-		deadline := time.Now().Add(time.Second * time.Duration(timeout))
-		task.Deadline = deadline
-		//ws.Tasks.Dict[task.IdTask].Deadline = deadline
-		// обновляем очередь
-		ws.Tasks.Queue.Update()
+		timeout := d[task.TaskN.Op] * 150 / 100
+		task.Deadline = time.Now().Add(time.Second * time.Duration(timeout))
 		// Сохраняем БД
 		ws.Save()
 		// структура для передачи вычислителю
@@ -77,7 +73,7 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 		}
 		// Маршалим её
 		data, _ := json.Marshal(&container) //ошибку пропускаем
-		// и записываем в ответ
+		// и записываем в ответ вычислителю
 		w.Write(data)
 		log.Println("вычислителю дана задача", container.TaskN)
 	}

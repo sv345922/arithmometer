@@ -75,9 +75,9 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 }
 
 // Строит дерево выражения и возвращает корневой узел из постфиксного выражения
-func GetTree(postfix []*Symbol) (*Node, error) {
+func GetTree(postfix []*Symbol) (*Node, *[]*Node, error) {
 	if len(postfix) == 0 {
-		return nil, fmt.Errorf("expression is empty")
+		return nil, nil, fmt.Errorf("expression is empty")
 	}
 	stack := newStack[Node](len(postfix))
 	for _, symbol := range postfix {
@@ -87,7 +87,7 @@ func GetTree(postfix []*Symbol) (*Node, error) {
 		if node.getType() != "num" {
 			// если стек пустой, возвращаем ошибку выражения
 			if stack.isEmpty() {
-				return nil, fmt.Errorf("ошибка выражения, оператор без операнда")
+				return nil, nil, fmt.Errorf("ошибка выражения, оператор без операнда")
 			}
 			y := stack.pop() // взять
 			x := stack.pop() // взять
@@ -112,6 +112,21 @@ func GetTree(postfix []*Symbol) (*Node, error) {
 			stack.push(node) // положить
 		}
 	}
+	// получаем список узлов выражения
+	root := stack.top()
+	nodes := make([]*Node, 0)
+	GetNodes(root, &nodes)
+	return root, &nodes, nil
+}
 
-	return stack.top(), nil
+// Проходит дерево выражения от корня и создает список узлов выражения
+func GetNodes(node *Node, nodes *[]*Node) {
+	node.CreateId()
+	*nodes = append(*nodes, node)
+	if node.Sheet {
+		return
+	}
+	GetNodes(node.X, nodes)
+	GetNodes(node.Y, nodes)
+	return
 }

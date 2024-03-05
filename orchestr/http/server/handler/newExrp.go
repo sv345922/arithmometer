@@ -40,30 +40,34 @@ func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.
 			w.Write([]byte("invalid expression"))
 			return
 		}
-
-		// Создаем и сохраняем задачу в задачах
+		// Создаем выражение
 		expression := tasker.Expression{
 			UserTask: newExrp.Expr,
 			Postfix:  postfix,
 			Times:    *newExrp.Timings,
+			//RootId:   root.NodeId,
 		}
+		// создаем id выражения
 		expression.CreateId()
+
 		log.Printf("Method: %s, Expression: %s, Timings: %s, id: %d",
 			r.Method,
-			newExrp.Expr,
-			newExrp.Timings.String(),
+			expression.UserTask,
+			expression.Times.String(),
 			expression.IdExpression,
 		)
-
-		ws.Expressions.Add(&expression)
-		// Обновляем рабочее пространство
-		ws.Update()
-		// Сохраняем базу данных
+		// добавляем выражение в список выражений
+		// также выполняем необходимые действия с рабочей структурой
+		err = ws.AddExpression(&expression)
+		if err != nil {
+			log.Println("ошибка добавления нового задания", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Выражение не может быть вычислено"))
+		}
 		err = ws.Save()
 		if err != nil {
 			log.Println("ошибка сохранение после нового задания", err)
 		}
-
 		// Записываем тело ответа
 		body := fmt.Sprintf("%d", expression.IdExpression)
 		w.Write([]byte(body))

@@ -30,13 +30,21 @@ type Task struct {
 // .Dict - словарь задач, ключ IdExpression
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
-	// TODO элементы в очереди не равны элементам в словаре проверить
-	Queue *Dequeue `json:"queue"`
-	//Dict  map[uint64]*TaskContainer `json:"dict"` // ключ IdTask
-	mu sync.RWMutex `json:"-"`
+	Queue *Dequeue     `json:"queue"`
+	mu    sync.RWMutex `json:"-"`
 }
 
-// Добавляет задачу в список задач и очередь
+// Создает новый список задач
+// .Dict - словарь с задачами
+// .Queue - очередь задач
+func NewTasks() *Tasks {
+	res := Tasks{}
+	//res.Dict = make(map[uint64]*TaskContainer)
+	res.Queue = NewDequeue()
+	return &res
+}
+
+// Добавляет задачу в список задач
 func (t *Tasks) AddTask(task *TaskContainer) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -59,12 +67,8 @@ func (t *Tasks) isContent(node *parsing.Node) bool {
 
 // Удаляет задачу
 func (t *Tasks) RemoveTask(idTask uint64) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	// удаление из очереди
 	t.Queue.removeTask(idTask) // Пока пропускаем ошибку
-	// удаление из словаря
-	//delete(t.Dict, idTask)
 }
 
 // Возвращает задачу (без удаления) для передачи ее вычислителю,
@@ -78,81 +82,23 @@ func (t *Tasks) GetTask(calcId int) *TaskContainer {
 		log.Println("очередь задач пустая")
 		return nil
 	}
-	// берем последний элемент очереди
+	// берем элемент из начала очереди (последний в списке Q)
 	task, _ := t.Queue.PopBack()
+	// Если задача уже взята вычислителем возвращаем task на прежнее место и
+	// возвращаем nil - все элементы в обработке
+	if task.CalcId != 0 {
+		t.Queue.AddBack(task)
+		return nil
+	}
 
 	// если последний элемент очереди не взят вычислителем в обработку, возвращаем его
 	// сам элемент кладем в начало очереди, ставим id вычислителя
 	task.mu.Lock()
-	if task.CalcId == 0 {
-		task.CalcId = calcId
-		task.mu.Unlock()
-		t.Queue.AddFront(task)
-		return task
-	}
+	task.CalcId = calcId
 	task.mu.Unlock()
-	// иначе возвращаем task на прежнее место и
-	// возвращаем nil - очередь пуста, все элементы в обработке
-	t.Queue.AddBack(task)
-	return nil
-}
+	t.Queue.AddFront(task)
+	return task
 
-// Содержит выражения пользователя
-// .Dict - словарь ссылок на выражения, ключ IdExpression
-// .ListExpr - список с ссылками на выражения
-// .mu - мьютекс для блокировки
-type Expressions struct {
-	Dict     map[uint64]*Expression `json:"dict"` // ключ id запроса выражения/запроса клиента
-	ListExpr []*Expression          `json:"listExpr"`
-	mu       sync.RWMutex           `json:"-"`
-}
-
-// Обновляет список выражений, при вычисленном корне выражения, либо делении на ноль,
-// ставит статус вычислено/деление на ноль
-// и результат вычислений
-func (e *Expressions) UpdateStatus(root *parsing.Node, status string, result float64) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	for _, expression := range e.ListExpr {
-		expression.mu.Lock()
-		if expression.RootId == root.NodeId {
-			expression.Status = status
-			expression.Result = result
-			expression.mu.Unlock()
-			return
-		}
-		expression.mu.Unlock()
-	}
-}
-
-// Выражение
-type Expression struct {
-	IdExpression uint64            `json:"id"`        // id запроса клиента
-	UserTask     string            `json:"userTask"`  // задание клиента
-	Postfix      []*parsing.Symbol `json:"postfix"`   // постфиксная запись выражения
-	Times        Timings           `json:"times"`     // тайминги
-	Result       float64           `json:"result"`    // результат,
-	Status       string            `json:"status"`    // ""/"done"/"деление на ноль"
-	RootId       uint64            `json:"rootId"`    // id кореневого узла
-	ParsError    error             `json:"parsError"` // Ошибка парсинга
-	mu           sync.Mutex
-}
-
-// Создает id выражения
-func (e *Expression) CreateId() {
-	s := ""
-	for _, symbol := range e.Postfix {
-		s = s + symbol.Val
-	}
-	e.IdExpression = parsing.GetId(s)
-}
-
-// Определяет, вычислено ли выражение
-func (e *Expression) Calculated() bool {
-	if e.Status == "done" {
-		return true
-	}
-	return false
 }
 
 // Тайминги для операторов
@@ -165,7 +111,7 @@ type Timings struct {
 
 // Стрингер
 func (t *Timings) String() string {
-	return fmt.Sprintf("+: %d s, -: %d s, *: %d s, /: %d s", t.Plus, t.Minus, t.Mult, t.Div)
+	return fmt.Sprintf("+: %ds, -: %ds, *: %ds, /: %ds", t.Plus, t.Minus, t.Mult, t.Div)
 }
 
 type NewExpr struct {

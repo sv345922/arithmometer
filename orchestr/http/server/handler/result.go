@@ -10,7 +10,6 @@ import (
 
 // Обрабатывает запросы клиента о проверке результата вычислений
 func GetResult(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
-	// Получаем рабочее пространство из контекста
 	return func(w http.ResponseWriter, r *http.Request) {
 		expressions := ws.Expressions
 
@@ -43,8 +42,8 @@ func GetResult(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Requ
 			//w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		if expression.Calculated() {
-			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf("результат выражения %s = %f", expression.UserTask, expression.Result)))
 			return
 		}

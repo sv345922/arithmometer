@@ -8,73 +8,65 @@ import (
 	"time"
 )
 
+type Nodes map[uint64]*parsing.Node
+
+func NewNodes() *Nodes {
+	nodes := Nodes(make(map[uint64]*parsing.Node))
+	return &nodes
+}
+
 type WorkingSpace struct {
-	Tasks       *Tasks                   `json:"tasks"`
-	Expressions *Expressions             `json:"expressions"`
-	Timings     *Timings                 `json:"timings"`
-	AllNodes    map[uint64]*parsing.Node // ключ id узла
+	Tasks       *Tasks       `json:"tasks"`
+	Expressions *Expressions `json:"expressions"`
+	Timings     *Timings     `json:"timings"`
+	AllNodes    *Nodes       `json:"allNodes"` // ключ id узла
 	mu          sync.RWMutex
 }
 
 // Сохраняет рабочее пространство
 func (ws *WorkingSpace) Save() error {
-	db := DataBase{
-		Expressions: ws.Expressions,
-		Tasks:       ws.Tasks,
-	}
-
-	err := SafeJSON[DataBase]("db", db)
-	if err != nil {
-		return err
-	}
-	log.Println("DB saved")
-	return nil
+	return SaveWS(ws)
 }
 
 // При получении выполненого задания,
-// проверяем на наличие ошибки деления на ноль.
-// Записывает результат в узел. и изменяет статус на вычислено
+// проверяет на наличие ошибки деления на ноль,
+// Записывает результат в узел и изменяет статус на - вычислено
 // Обновляет очередь задач.
 // Проверяет список выражений и если оно вычислено, обновляет его статус.
 // Добавляет новую задачу в начало очереди задач.
 func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
-	defer ws.Tasks.Queue.Update()
 	ws.mu.RLock()
-	// находим узел соответсвующей решенной задаче
-	currentNode, ok := ws.AllNodes[IdTask]
-	if !ok {
-		log.Println("не найден узел")
-	}
+	// находим узел решенной задаче
+	calculatedNode, ok := (*ws.AllNodes)[IdTask]
 	ws.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("узел в мапе активных узлов не найден")
+	}
 	// Проверка деления на ноль и обновление выражения
 	// с удалением не требующих решения задач,
 	// а также изменение статуса выражения
 	if answer.Err != nil {
-		log.Println("в выражении присутствует деление на ноль")
-		currentNode.ErrZeroDiv = answer.Err
-		ws.updateWhileZero(currentNode)
-		return nil
+		ws.updateWhileZeroDiv(calculatedNode, answer.Err)
+		return answer.Err
 	}
 	result := answer.Result
 	// Удаляем задачу из очереди
 	ws.Tasks.RemoveTask(IdTask)
 	// записываем результат вычисления в узел
-	currentNode.Val = result
-	currentNode.Calculated = true
+	calculatedNode.Val = result
+	calculatedNode.Calculated = true
 
-	// Проверяем готовность родительского узла и добавляем его в очередь задач при готовности
-	// TODO вроде сделано
-	parent := currentNode.Parent
+	// Проверяем родительский узел
+	parent := calculatedNode.Parent
 	// Если это корень выражения
 	if parent == nil {
 		// Обновляем результат выражения и его статус
-		ws.Expressions.UpdateStatus(currentNode, "done", result)
+		ws.Expressions.UpdateStatus(calculatedNode, "done", result)
 		return nil
 	}
-	// проверка готовности узла и добавление в очередь задач
+	// проверка готовности родительского узла и добавление его в очередь задач
 	for checkAndUpdateNodeToTasks(ws, parent) {
 		if parent.Parent == nil {
-			// ws.Expressions.UpdateStatus(parent, "done", 0)
 			break
 		}
 		parent = parent.Parent
@@ -82,6 +74,50 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 	return nil
 }
 
+// Добавляет новое выражение в структура,
+// обновляет мапу узлов
+// обновляет очередь вычислений
+func (ws *WorkingSpace) AddExpression(expression *Expression) error {
+	// построить дерево выражения и внести корень
+	root, nodes, err := parsing.GetTree(expression.Postfix)
+	// создать id корневого узла
+	root.CreateId()
+	expression.RootId = root.NodeId
+
+	// добавляем выражение в список выражений
+	ws.Expressions.Add(expression)
+	// Если выражение не может быть построено, возращаем ошибку
+	if err != nil {
+		return fmt.Errorf("обшибка построения выражения: %v", err)
+	}
+
+	// проходим по нему и добавляем узлы готовые к вычислению в очередь
+	// сами узлы добавляем в AllNodes
+	for _, node := range *nodes {
+		// Создаем ID для узлов
+		if node.NodeId == 0 {
+			node.CreateId()
+		}
+		// заполняем словарь узлами
+		ws.mu.Lock()
+		(*ws.AllNodes)[node.NodeId] = node
+		// Если узел не рассчитан и узла с таким ID нет в очереди задач
+		if node.IsReadyToCalc() {
+			// добавляем его в таски
+			ws.Tasks.AddTask(&TaskContainer{
+				IdTask:   node.NodeId,
+				TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
+				Deadline: time.Now().Add(time.Hour * 1000),
+				TimingsN: expression.Times,
+			})
+		}
+		ws.mu.Unlock()
+	}
+	return nil
+}
+
+// TODO - не используется
+// При поступлении нового выражения
 // проходит по списку выражений, создает дерево узлов выражения,
 // включает в рабочее пространство список узлов - ws.AllNodes
 // созадет очередь задач для вычислителей - ws.tasks
@@ -96,9 +132,8 @@ func (ws *WorkingSpace) Update() {
 	//проходим по задачам
 	for _, expression := range ws.Expressions.ListExpr {
 		// строим дерево выражения
-		root, err := parsing.GetTree(expression.Postfix)
-		nodes := make([]*parsing.Node, 0)
-		nodes = GetNodes(root, nodes)
+		root, nodes, err := parsing.GetTree(expression.Postfix)
+
 		// Записываем в выражение ошибку, если она возникла при построении дерева
 		// выражения
 		if err != nil {
@@ -106,13 +141,13 @@ func (ws *WorkingSpace) Update() {
 			continue
 		}
 		// Создаем дерево задач
-		for _, node := range nodes {
+		for _, node := range *nodes {
 			// Создаем ID для узлов
 			node.CreateId()
 			// проверить наличие задачи в tasks
 			// заполняем словарь узлами
-			ws.AllNodes[node.NodeId] = node
-			// Если узел не рассчитан и узла с таким ID не в очереди задач
+			(*ws.AllNodes)[node.NodeId] = node
+			// Если узел не рассчитан и узла с таким ID нет в очереди задач
 			if node.IsReadyToCalc() && !ws.Tasks.isContent(node) {
 				// добавляем его в таски
 				ws.Tasks.AddTask(&TaskContainer{
@@ -127,16 +162,16 @@ func (ws *WorkingSpace) Update() {
 	}
 }
 
-// Проходит дерево выражения от корня и создает список узлов выражения
-func GetNodes(root *parsing.Node, nodes []*parsing.Node) []*parsing.Node {
-	nodes = append(nodes, root)
-	if root.Sheet {
-		return nodes
-	}
-	nodes = GetNodes(root.X, nodes)
-	nodes = GetNodes(root.Y, nodes)
-	return nodes
-}
+// Проходит дерево выражения от корня и создает список узлов выражения - удалить
+//func GetNodes(root *parsing.NodeDB, nodes *[]*parsing.NodeDB) []*parsing.NodeDB {
+//	nodes = append(nodes, root)
+//	if root.Sheet {
+//		return nodes
+//	}
+//	nodes = GetNodes(root.X, nodes)
+//	nodes = GetNodes(root.Y, nodes)
+//	return nodes
+//}
 
 // Проверяет на готовность узел, при готовности добавляет его в очередь задач
 func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
@@ -162,50 +197,34 @@ func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
 }
 
 // Обновляет рабочее пространство при обнаружении деления на ноль,
-// Проверяет узлы в дереве выражения и обновляет их,
-// Удаляет задачи из очереди задач,
-// Сохраняет базу данных
-func (ws *WorkingSpace) updateWhileZero(node *parsing.Node) {
-	// изменяем поле ошибка родительского узла и его дочерних узлов
-	rootNode := errorUpdate(node)
+// проверяет узлы в дереве выражения и обновляет их
+func (ws *WorkingSpace) updateWhileZeroDiv(node *parsing.Node, err error) {
+	log.Println("в выражении присутствует деление на ноль")
+	err = fmt.Errorf(err.Error() + "in Expression")
+	node.ErrZeroDiv = err
+	// находим кореневой узел выражения
+	root := node.Parent
+	for ; root != nil; root = node.Parent {
+	}
 	// Изменяем статус выражения с ошибкой
-	ws.Expressions.UpdateStatus(rootNode, "деление на ноль в выражении", 0)
-	// Удаляем узлы с ошибкой
-	for key, val := range ws.AllNodes {
-		if val.ErrZeroDiv != nil {
-			delete(ws.AllNodes, key)
-		}
-	}
-	// Удаляем задачи с ошибкой
-	for _, val := range ws.Tasks.Queue.Q {
-		if val.Err != nil {
-			ws.Tasks.RemoveTask(val.IdTask)
-		}
-	}
-	// Сохранение рабочего пространства
-	ws.Save()
+	ws.Expressions.UpdateStatus(root, err.Error(), 0)
+
+	//Удаляем узлы выражения из очереди и мапы узлов
+	ws.removeCalculatedNodes(root)
 }
 
-// Обновляет статус ошибки узла вниз (до листа) рекурсивно
-func errorUpdateToSheet(n *parsing.Node) {
-	// если узел это лист, или ветка узла уже обработана
-	if n.Sheet || n.ErrZeroDiv != nil {
-		return
+// Удаляем узлы выражения из очереди и мапы узлов по корневому узлу
+func (ws *WorkingSpace) removeCalculatedNodes(node *parsing.Node) {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+	for node.X != nil {
+		ws.removeCalculatedNodes(node.X)
 	}
-	n.ErrZeroDiv = fmt.Errorf("деление на ноль в выражении")
-	errorUpdateToSheet(n.X)
-	errorUpdateToSheet(n.Y)
-}
-
-// Обновляет статус ошибки узла вверх (до корня), и соседних ветвей
-// и возвращает корень выражения. Работает рекурсивно
-func errorUpdate(n *parsing.Node) *parsing.Node {
-	if n.Parent == nil {
-		n.ErrZeroDiv = fmt.Errorf("деление на ноль в выражении")
-		return n
+	for node.Y != nil {
+		ws.removeCalculatedNodes(node.Y)
 	}
-	n.ErrZeroDiv = fmt.Errorf("деление на ноль в выражении")
-	errorUpdateToSheet(n.X)
-	errorUpdateToSheet(n.Y)
-	return errorUpdate(n.Parent)
+	ws.mu.Lock()
+	delete((*ws.AllNodes), node.NodeId)
+	ws.mu.Unlock()
+	ws.Tasks.Queue.removeTask(node.NodeId)
 }

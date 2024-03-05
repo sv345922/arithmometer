@@ -1,9 +1,7 @@
 package tasker
 
 import (
-	"arithmometer/orchestr/parsing"
 	"context"
-	"fmt"
 	"log"
 	"sync"
 )
@@ -17,88 +15,14 @@ func GetWs(ctx context.Context) (*WorkingSpace, bool) {
 	return ws, ok
 }
 
-// Создает новый список выражений
-// .Dict - словарь с ссылками на выражения
-// .ListExpr - список с ссылками на выраженя, повторяет .Dict
-func NewExpressions() *Expressions {
-	res := Expressions{}
-	res.Dict = make(map[uint64]*Expression)
-	res.ListExpr = make([]*Expression, 0)
-	return &res
-}
-
-// Добавляет выражение в список выражений
-func (e *Expressions) Add(expression *Expression) {
-	l_prev := len(e.Dict)
-	e.Dict[expression.IdExpression] = expression
-	if l_prev+1 == len(e.Dict) {
-		e.ListExpr = append(e.ListExpr, expression)
-	}
-}
-
-// возвращает выражение из списка задач
-func FindExpression(id uint64, e *Expressions) *Expression {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	if task, ok := e.Dict[id]; ok {
-		return task
-	}
-	return nil
-}
-
-// Создает новый список задач
-// .Dict - словарь с задачами
-// .Queue - очередь задач
-func NewTasks() *Tasks {
-	res := Tasks{}
-	//res.Dict = make(map[uint64]*TaskContainer)
-	res.Queue = NewDequeue()
-	return &res
-}
-
-// Создает рабочее пространство и сохраняет базу данных
+// Создает рабочее пространство из сохраненной базы данных
 func RunTasker() (*WorkingSpace, error) {
-
-	ws := &WorkingSpace{
-		Tasks:       NewTasks(),
-		Expressions: NewExpressions(),
-		Timings:     &Timings{},
-		AllNodes:    make(map[uint64]*parsing.Node), // ключом является id узла
-	}
 	// Восстанавливаем выражения и задачи из базы данных
-	err := restoreTaskExpr(ws)
+	// Загрузка сохраненной БД
+	ws, err := LoadDB()
 	if err != nil {
-		log.Println("ошибка восстановления из БД", err)
-	}
-
-	// обновляем ws
-	ws.Update()
-	err = ws.Save()
-	if err != nil {
-		err = fmt.Errorf("ошибка сохранения БД: %v", err)
+		log.Println("ошибка загрузки БД", err)
+		return ws, err
 	}
 	return ws, err
-}
-
-// Восстанавливает рабочее пространство из сохраненной базы данных
-func restoreTaskExpr(ws *WorkingSpace) error {
-	// Загрузка сохраненной БД
-	savedDb, err := LoadDB()
-	if err != nil {
-		log.Println("ошибка загрузки бд", err)
-	}
-	ws.Expressions = savedDb.Expressions
-	ws.Tasks = savedDb.Tasks
-	return nil
-}
-
-// Cоздает файл пустой БД
-func CreateEmptyDb() error {
-
-	// Создаем файл с пустой БД
-	err := SafeJSON[DataBase]("db", *NewDB())
-	if err != nil {
-		log.Println("Ошибка создания пустой БД")
-	}
-	return nil
 }

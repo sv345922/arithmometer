@@ -53,16 +53,16 @@ func (s *Symbol) createNode() *Node {
 
 // Node - узел выражения
 type Node struct {
-	NodeId     uint64       `json:"nodeId"`
-	Op         string       `json:"op"` // оператор
-	X          *Node        `json:"x"`
-	Y          *Node        `json:"y"`     // потомки
-	Val        float64      `json:"Val"`   // значение узла
-	Sheet      bool         `json:"sheet"` // флаг листа
-	Calculated bool         `json:"calculated"`
-	ErrZeroDiv error        `json:"err"`
-	Parent     *Node        `json:"parent"` // узел родитель
-	Mu         sync.RWMutex `json:"-"`
+	NodeId     uint64
+	Op         string // оператор
+	X          *Node
+	Y          *Node   // потомки
+	Val        float64 // значение узла
+	Sheet      bool    // флаг листа
+	Calculated bool
+	ErrZeroDiv error
+	Parent     *Node // узел родитель
+	Mu         sync.RWMutex
 }
 
 // Создает ID у узла

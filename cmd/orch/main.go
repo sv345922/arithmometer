@@ -4,6 +4,7 @@ import (
 	"arithmometer/orchestr/http/server"
 	"arithmometer/orchestr/inter/tasker"
 	"log"
+	"os"
 )
 
 // создать задачу (выражение)
@@ -19,11 +20,16 @@ import (
 
 func main() {
 	// создать пустую базу
-	//tasker.CreateEmptyDb()
+	if len(os.Args) > 1 {
+		if os.Args[1] == "new" {
+			tasker.CreateEmptyDb()
+		}
+	}
 	// сделать список задач для вычисления
 	ws, err := tasker.RunTasker()
 	if err != nil {
-		log.Print("main: %v", err)
+		log.Printf("main: %v", err)
 	}
-	server.RunServer(ws)
+	err = server.RunServer(ws)
+	log.Println(err)
 }

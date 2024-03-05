@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadDB(t *testing.T) {
-	res, err := LoadDB()
+	res, err := baseToSave.LoadDB()
 	fmt.Printf("%v", res)
 	println("err: ", err.Error())
 	if err != nil {

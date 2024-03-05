@@ -19,14 +19,20 @@ func NewDequeue() *Dequeue {
 	return &result
 }
 func (d *Dequeue) AddBack(newVal *TaskContainer) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.Q = append(d.Q, newVal)
 	d.L++
 }
 func (d *Dequeue) AddFront(newVal *TaskContainer) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.Q = append([]*TaskContainer{newVal}, d.Q...)
 	d.L++
 }
 func (d *Dequeue) PopBack() (*TaskContainer, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.L == 0 {
 		return nil, fmt.Errorf("пустая очередь")
 	}
@@ -36,6 +42,8 @@ func (d *Dequeue) PopBack() (*TaskContainer, error) {
 	return result, nil
 }
 func (d *Dequeue) PopFront() (*TaskContainer, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.L == 0 {
 		return nil, fmt.Errorf("пустая очередь")
 	}
@@ -45,43 +53,43 @@ func (d *Dequeue) PopFront() (*TaskContainer, error) {
 	return result, nil
 }
 func (d *Dequeue) removeTask(idTask uint64) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	for i, element := range d.Q {
 		if element.IdTask == idTask {
 			d.Q = append(d.Q[:i], d.Q[i+1:]...)
 			d.L--
 			return nil
 		}
-
 	}
-	return fmt.Errorf("пустая очередь, либо задача не найдена в очереди")
+	return fmt.Errorf("задача не найдена в очереди")
 }
 
-// Обновляет структуру очереди, чтобы в конце были только невзятые задачи, а в начале
-// только взятые в обработку
-func (d *Dequeue) Update() {
-	var inWork []*TaskContainer
-	var notInWork []*TaskContainer
+// Обновляет структуру очереди, перемещая задачи с прошедшим таймаутом в начало очереди
+// и сбрасывая id их вычислителя
+func (d *Dequeue) UpdateWithTimeouts() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	var waitingTasks []*TaskContainer
 
-	for i := 0; i < d.L; i++ {
-		// Если текущий элемент не вычисляется
-		task := d.Q[i]
-		if task.CalcId == 0 {
-			// заносим его в список notInWork
-			notInWork = append(notInWork, d.Q[i])
+	// Перебираем задачи из конца очереди (ожидающие результата от вычислителя)
+	// и проверяем их дедлайны
+	for currentTask, err := d.PopFront(); err == nil && currentTask.CalcId != 0; currentTask, err = d.PopFront() {
+		// если дедлайн прошел обновляем задачу и ставим в начало очереди
+		if currentTask.Deadline.Before(time.Now()) {
+			// установка дедлайна на будущее, можно и больше
+			currentTask.Deadline = time.Now().Add(time.Hour * 1000)
+			// и сброс id вычислителя
+			currentTask.CalcId = 0
+			d.AddBack(currentTask)
+			continue
 		} else {
-			// иначе заносим его в список inWork
-			// если вычислитель не вернул результат до дедлайна
-			if task.Deadline.Before(time.Now()) {
-				// установка дедлайна на будущее, можно и больше
-				task.Deadline = time.Now().Add(time.Hour * 1000)
-				// и сброс id вычислителя
-				task.CalcId = 0
-				notInWork = append(notInWork, task)
-			}
-			inWork = append(inWork, d.Q[i])
+			// иначе заносим во временный список ожидающих результата вычисления
+			waitingTasks = append(waitingTasks, currentTask)
 		}
 	}
-	d.Q = append(inWork, notInWork...)
+	// Переносим элементы из временного списка в конец очереди
+	for _, task := range waitingTasks {
+		d.AddFront(task)
+	}
 }

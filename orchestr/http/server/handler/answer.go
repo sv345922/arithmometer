@@ -10,7 +10,6 @@ import (
 
 // Обработчик, принимает от вычислителя ответ
 func GiveAnswer(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
-	// Получаем рабочее пространство из контекста
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверить что это метод POST
 		if r.Method != http.MethodPost {
@@ -29,10 +28,13 @@ func GiveAnswer(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Req
 			return
 		}
 		log.Println("Получен ответ от вычислителя", container.AnswerN.Result)
-		// парсим id задачи до uint64
+		// парсим id задачи в виде uint64
 		id, _ := strconv.ParseUint(container.Id, 10, 64)
 		// Обновляем очередь задач с учетом выполненной задачи и заносим результат вычисления
 		err = ws.UpdateTasks(id, &container.AnswerN)
+		if err != nil {
+			log.Println("ошибка обновления задач:", err)
+		}
 		w.WriteHeader(http.StatusOK)
 	}
 }

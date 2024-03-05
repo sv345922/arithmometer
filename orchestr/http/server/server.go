@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func RunServer(ws *tasker.WorkingSpace) {
+func RunServer(ws *tasker.WorkingSpace) error{
 	mux := http.NewServeMux()
 
 	// Дать ответ клиенту о результатах вычисления выражений
@@ -27,5 +27,8 @@ func RunServer(ws *tasker.WorkingSpace) {
 	//mux.Handle("/giveanswer", stateContext(http.HandlerFunc(handler.GiveAnswer)))
 
 	log.Println("Server is working")
-	log.Fatal(http.ListenAndServe("localhost:8000", mux))
+	defer log.Println("Server stopped")
+	err := http.ListenAndServe("localhost:8000", mux)
+	log.Fatal(err)
+	return err
 }
