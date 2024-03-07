@@ -8,25 +8,37 @@ import (
 	"time"
 )
 
-// Контейнер задачи для очереди задач
+// TaskContainer Контейнер задачи для очереди задач
 type TaskContainer struct {
-	IdTask   uint64     `json:"id"`       // идентификатор задачи, передается вычислителю
-	TaskN    Task       `json:"taskN"`    // задача
-	Err      error      `json:"err"`      // ошибка
-	TimingsN Timings    `json:"timingsN"` // тайминги
-	CalcId   int        `json:"calcId"`   // id вычислителя задачи
-	Deadline time.Time  `json:"deadline"`
-	mu       sync.Mutex `json:"-"`
+	IdTask   uint64       `json:"id"`       // идентификатор задачи, передается вычислителю
+	TaskN    Task         `json:"taskN"`    // задача
+	Err      error        `json:"err"`      // ошибка
+	TimingsN Timings      `json:"timingsN"` // тайминги
+	CalcId   int          `json:"calcId"`   // id вычислителя задачи
+	Deadline time.Time    `json:"deadline"`
+	mu       sync.RWMutex `json:"-"`
 }
 
-// Зачада для вычислителя
+// GetID Возвращает id
+func (tc *TaskContainer) GetID() uint64 {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+	return tc.IdTask
+}
+
+// SetCalc Присваивает id вычислителя
+func (tc *TaskContainer) SetCalc(calcId int) {
+	tc.CalcId = calcId
+}
+
+// Task Зачада для вычислителя
 type Task struct {
 	X  float64 `json:"x"`  // операнд X
 	Y  float64 `json:"y"`  // операнд Y
 	Op string  `json:"op"` // операция
 }
 
-// Содержит задачи для вычислителей
+// Tasks Содержит задачи для вычислителей
 // .Dict - словарь задач, ключ IdExpression
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
@@ -34,7 +46,7 @@ type Tasks struct {
 	mu    sync.RWMutex `json:"-"`
 }
 
-// Создает новый список задач
+// NewTasks Создает новый список задач
 // .Dict - словарь с задачами
 // .Queue - очередь задач
 func NewTasks() *Tasks {
@@ -44,7 +56,7 @@ func NewTasks() *Tasks {
 	return &res
 }
 
-// Добавляет задачу в список задач
+// AddTask Добавляет задачу в список задач
 func (t *Tasks) AddTask(task *TaskContainer) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -65,7 +77,7 @@ func (t *Tasks) isContent(node *parsing.Node) bool {
 	return false
 }
 
-// Удаляет задачу
+// RemoveTask Удаляет задачу
 func (t *Tasks) RemoveTask(idTask uint64) {
 	// удаление из очереди
 	t.Queue.removeTask(idTask) // Пока пропускаем ошибку
