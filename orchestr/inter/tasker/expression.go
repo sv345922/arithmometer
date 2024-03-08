@@ -2,6 +2,7 @@ package tasker
 
 import (
 	"arithmometer/orchestr/parsing"
+	"arithmometer/pkg/timings"
 	"log"
 	"sync"
 )
@@ -70,7 +71,7 @@ type Expression struct {
 	IdExpression uint64            `json:"id"`        // id запроса клиента
 	UserTask     string            `json:"userTask"`  // задание клиента
 	Postfix      []*parsing.Symbol `json:"postfix"`   // постфиксная запись выражения
-	Times        Timings           `json:"times"`     // тайминги
+	Times        timings.Timings   `json:"times"`     // тайминги
 	Result       float64           `json:"result"`    // результат,
 	Status       string            `json:"status"`    // ""/"done"/"деление на ноль"
 	RootId       uint64            `json:"rootId"`    // id кореневого узла

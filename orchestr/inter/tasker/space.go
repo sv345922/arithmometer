@@ -3,6 +3,7 @@ package tasker
 import (
 	"arithmometer/orchestr/parsing"
 	"arithmometer/pkg/taskQueue"
+	"arithmometer/pkg/timings"
 	"fmt"
 	"log"
 	"sync"
@@ -19,7 +20,7 @@ func NewNodes() *Nodes {
 type WorkingSpace struct {
 	Tasks       *taskQueue.Tasks `json:"tasks"`
 	Expressions *Expressions     `json:"expressions"`
-	Timings     *Timings         `json:"timings"`
+	Timings     *timings.Timings `json:"timings"`
 	AllNodes    *Nodes           `json:"allNodes"` // ключ id узла
 	mu          sync.RWMutex
 }
@@ -134,7 +135,7 @@ func (ws *WorkingSpace) Update() {
 	//for _, expression := range ws.Expressions.ListExpr {
 	//	// строим дерево выражения
 	//	root, nodes, err := parsing.GetTree(expression.Postfix)
-//
+	//
 	//	// Записываем в выражение ошибку, если она возникла при построении дерева
 	//	// выражения
 	//	if err != nil {
@@ -175,6 +176,7 @@ func (ws *WorkingSpace) Update() {
 //}
 
 // Проверяет на готовность узел, при готовности добавляет его в очередь задач
+// TODO проверить, возможно отсюда идет ошибка очереди
 func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
 	node.Mu.RLock()
 	defer node.Mu.RUnlock()

@@ -3,6 +3,7 @@ package handler
 import (
 	"arithmometer/orchestr/inter/tasker"
 	"arithmometer/orchestr/parsing"
+	"arithmometer/pkg/timings"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,7 +29,7 @@ func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.
 		}
 		//Если тайминги не передаются, тогда они ставятся по умолчанию
 		if newExrp.Timings == nil {
-			newExrp.Timings = &tasker.Timings{Plus: 1, Minus: 1, Mult: 1, Div: 1}
+			newExrp.Timings = &timings.Timings{Plus: 1, Minus: 1, Mult: 1, Div: 1}
 		}
 		// Парсим выражение, и проверяем его
 		// Предполагается, что если парсинг с ошибкой, значит невалидное выражение

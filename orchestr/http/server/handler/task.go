@@ -2,12 +2,12 @@ package handler
 
 import (
 	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/pkg/timings"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 // Даёт задачу калькулятору
@@ -34,7 +34,7 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		// Обновляем очередь задач, чтобы убрать дедлайны у просроченных
-		ws.Tasks.Queue.UpdateWithTimeouts()
+		ws.Tasks.CheckDeadlines()
 		// Получаем задачу из очереди
 		task := ws.Tasks.GetTask(calcId)
 		if task == nil {
@@ -47,23 +47,28 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 		// записываем дедлайн для узла с учетом времени выполнения операции
 		// достаем оператор из задачи
 		// словарь таймигнгов операций
-		d := map[string]int{
-			"+": task.TimingsN.Plus,
-			"-": task.TimingsN.Minus,
-			"*": task.TimingsN.Mult,
-			"/": task.TimingsN.Div,
-		}
+		//d := map[string]int{
+		//	"+": task.TimingsN.Plus,
+		//	"-": task.TimingsN.Minus,
+		//	"*": task.TimingsN.Mult,
+		//	"/": task.TimingsN.Div,
+		//}
 		// дедлайн равен времени выполнения операции + 50%, статус задач обновляется при
 		// обновлении очереди
-		timeout := d[task.TaskN.Op] * 150 / 100
-		task.Deadline = time.Now().Add(time.Second * time.Duration(timeout))
+		//timeout := d[task.TaskN.Op] * 150 / 100
+		//task.Deadline = time.Now().Add(time.Second * time.Duration(timeout))
+
+		timeout := task.GetTiming() * 15 / 10
+		task.SetDeadline(timeout)
+
 		// Сохраняем БД
 		ws.Save()
+
 		// структура для передачи вычислителю
 		type TaskForCalc struct {
-			Id       string         `json:"id"`
-			TaskN    tasker.Task    `json:"taskN"`
-			TimingsN tasker.Timings `json:"timingsN"`
+			Id       string          `json:"id"`
+			TaskN    tasker.Task     `json:"taskN"`
+			TimingsN timings.Timings `json:"timingsN"`
 		}
 		// Создаем структуру для передачи вычислителю
 		container := TaskForCalc{

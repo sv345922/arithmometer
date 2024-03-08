@@ -2,6 +2,8 @@ package tasker
 
 import (
 	"arithmometer/orchestr/parsing"
+	"arithmometer/pkg/taskQueue"
+	"arithmometer/pkg/timings"
 	"encoding/json"
 	"log"
 	"os"
@@ -10,9 +12,9 @@ import (
 
 type DataBase struct {
 	// список выражений (с таймингами)
-	Tasks       *Tasks            `json:"tasks"`
+	Tasks       *taskQueue.Tasks  `json:"tasks"`
 	Expressions []*Expression     `json:"expressions"` // []Expression
-	Timings     Timings           `json:"timings"`
+	Timings     timings.Timings   `json:"timings"`
 	AllNodes    map[uint64]NodeDB `json:"allNodes"` // map[uint64]NodeDB
 }
 
@@ -34,9 +36,9 @@ type additiveJSON interface {
 
 func NewDB() *DataBase {
 	result := DataBase{
-		Tasks:       NewTasks(),
+		Tasks:       taskQueue.NewTasks(),
 		Expressions: []*Expression{},
-		Timings:     Timings{},
+		Timings:     timings.Timings{},
 		AllNodes:    make(map[uint64]NodeDB),
 	}
 	return &result
