@@ -22,7 +22,7 @@ type NodeDB struct {
 	NodeId     uint64  `json:"nodeId"`
 	Op         string  `json:"op"` // оператор
 	XId        uint64  `json:"x"`
-	YId        uint64  `json:"y"`     // потомки
+	YId        uint64  `json:"y"`
 	Val        float64 `json:"Val"`   // значение узла
 	Sheet      bool    `json:"sheet"` // флаг листа
 	Calculated bool    `json:"calculated"`

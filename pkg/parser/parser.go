@@ -1,11 +1,60 @@
-package parsing
+package parser
 
 import (
+	"arithmometer/pkg/stack"
+	"arithmometer/pkg/treeExpression"
 	"fmt"
-	//"strconv"
+	"strconv"
 	"strings"
 	"text/scanner"
 )
+
+// TODO
+
+var priority = map[string]int{
+	"+": 1,
+	"-": 1,
+	"*": 2,
+	"/": 2,
+}
+
+// Symbol - содержит символ выражения
+type Symbol struct {
+	Val string
+}
+
+func (s *Symbol) getPriority() int {
+	switch s.Val {
+	case "+", "-", "*", "/": // если это оператор
+		return priority[s.Val]
+	case "(", ")":
+		return 0
+	default:
+		return 10
+	}
+}
+func (s *Symbol) getType() string {
+	switch s.Val {
+	case "+", "-", "*", "/", "(", ")": // если это оператор
+		return "Op"
+	default:
+		return "num"
+	}
+}
+func (s *Symbol) String() string {
+	return s.Val
+}
+
+// Возвращает узел вычисления полученный из символа при построении дерева вычисления
+func (s *Symbol) createNode() *treeExpression.Node {
+	switch s.getType() {
+	case "Op": // если символ оператор
+		return &treeExpression.Node{Op: s.Val}
+	default: // Если символ операнд
+		val, _ := strconv.ParseFloat(s.Val, 64)
+		return &treeExpression.Node{Val: val, Sheet: true, Calculated: true}
+	}
+}
 
 // Parse - парсит выражение в символы
 func Parse(input string) ([]*Symbol, error) {
@@ -32,8 +81,8 @@ func Parse(input string) ([]*Symbol, error) {
 
 // Создает постфиксную запись выражения
 func getPostfix(input []*Symbol) ([]*Symbol, error) {
-	var postFix []*Symbol                   // последовательность постфиксного выражения
-	opStack := newStack[Symbol](len(input)) // стек хранения операторов
+	var postFix []*Symbol                         // последовательность постфиксного выражения
+	opStack := stack.NewStack[Symbol](len(input)) // стек хранения операторов
 
 	for _, currentSymbol := range input {
 		switch currentSymbol.getType() {
@@ -42,10 +91,10 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 		case "Op":
 			switch currentSymbol.Val {
 			case "(":
-				opStack.push(currentSymbol)
+				opStack.Push(currentSymbol)
 			case ")":
 				for {
-					headStack := opStack.pop()
+					headStack := opStack.Pop()
 					if headStack == nil {
 						return nil, fmt.Errorf("invalid paranthesis")
 					}
@@ -57,41 +106,41 @@ func getPostfix(input []*Symbol) ([]*Symbol, error) {
 				}
 			default: // Val оператор
 				priorCur := currentSymbol.getPriority()
-				for !opStack.isEmpty() && opStack.top().getPriority() >= priorCur {
-					postFix = append(postFix, opStack.pop())
+				for !opStack.IsEmpty() && opStack.Top().getPriority() >= priorCur {
+					postFix = append(postFix, opStack.Pop())
 				}
-				opStack.push(currentSymbol)
+				opStack.Push(currentSymbol)
 			}
 		}
 	}
-	for !opStack.isEmpty() {
-		postFix = append(postFix, opStack.pop())
+	for !opStack.IsEmpty() {
+		postFix = append(postFix, opStack.Pop())
 	}
 	return postFix, nil
 }
 
-// Строит дерево выражения и возвращает корневой узел из постфиксного выражения
-func GetTree(postfix []*Symbol) (*Node, *[]*Node, error) {
+// GetTree Строит дерево выражения и возвращает корневой узел из постфиксного выражения
+func GetTree(postfix []*Symbol) (*treeExpression.Node, *[]*treeExpression.Node, error) {
 	if len(postfix) == 0 {
 		return nil, nil, fmt.Errorf("expression is empty")
 	}
-	stack := newStack[Node](len(postfix))
+	stack := stack.NewStack[treeExpression.Node](len(postfix))
 	for _, symbol := range postfix {
 		node := symbol.createNode()
 		// Если узел оператор
 
-		if node.getType() != "num" {
+		if node.GetType() != "num" {
 			// если стек пустой, возвращаем ошибку выражения
-			if stack.isEmpty() {
+			if stack.IsEmpty() {
 				return nil, nil, fmt.Errorf("ошибка выражения, оператор без операнда")
 			}
-			y := stack.pop() // взять
-			x := stack.pop() // взять
+			y := stack.Pop() // взять
+			x := stack.Pop() // взять
 
 			// если в стеке нет x, создаем вместо него узел с val=0,
 			// обработка унарных операторов
 			if x == nil {
-				node.X = &Node{Val: 0, Parent: node, Sheet: true, Calculated: true}
+				node.X = &treeExpression.Node{Val: 0, Parent: node, Sheet: true, Calculated: true}
 				node.Y = y
 				// устанавливаем родителя
 				y.Parent = node
@@ -102,21 +151,21 @@ func GetTree(postfix []*Symbol) (*Node, *[]*Node, error) {
 				x.Parent = node
 				y.Parent = node
 			}
-			stack.push(node) // положить
+			stack.Push(node) // положить
 		} else {
 			// если узел не оператор, то он число
-			stack.push(node) // положить
+			stack.Push(node) // положить
 		}
 	}
 	// получаем список узлов выражения
-	root := stack.top()
-	nodes := make([]*Node, 0)
+	root := stack.Top()
+	nodes := make([]*treeExpression.Node, 0)
 	GetNodes(root, &nodes)
 	return root, &nodes, nil
 }
 
 // Проходит дерево выражения от корня и создает список узлов выражения
-func GetNodes(node *Node, nodes *[]*Node) {
+func GetNodes(node *treeExpression.Node, nodes *[]*treeExpression.Node) {
 	node.CreateId()
 	*nodes = append(*nodes, node)
 	if node.Sheet {

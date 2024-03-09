@@ -13,7 +13,7 @@ var priority = map[string]int{
 	"/": 2,
 }
 
-// PostfixExpr - узел постфиксной записи
+// Symbol - содержит символ выражения
 type Symbol struct {
 	Val string
 }
@@ -89,7 +89,7 @@ func (n *Node) IsReadyToCalc() bool {
 	return false
 }
 
-// создает id
+// создает id из строки
 func GetId(s string) uint64 {
 	res := uint64(0)
 	for i, v := range []byte(s) {

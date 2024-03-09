@@ -1,27 +1,22 @@
 package tasker
 
 import (
-	"arithmometer/orchestr/parsing"
+	"arithmometer/pkg/expressions"
+	"arithmometer/pkg/parser"
 	"arithmometer/pkg/taskQueue"
 	"arithmometer/pkg/timings"
+	"arithmometer/pkg/treeExpression"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 )
 
-type Nodes map[uint64]*parsing.Node
-
-func NewNodes() *Nodes {
-	nodes := Nodes(make(map[uint64]*parsing.Node))
-	return &nodes
-}
-
 type WorkingSpace struct {
-	Tasks       *taskQueue.Tasks `json:"tasks"`
-	Expressions *Expressions     `json:"expressions"`
-	Timings     *timings.Timings `json:"timings"`
-	AllNodes    *Nodes           `json:"allNodes"` // ключ id узла
+	Tasks       *taskQueue.Tasks                 `json:"tasks"`
+	Expressions *expressions.Expressions         `json:"expressions"`
+	Timings     *timings.Timings                 `json:"timings"`
+	AllNodes    *map[uint64]*treeExpression.Node `json:"allNodes"` // ключ id узла
 	mu          sync.RWMutex
 }
 
@@ -79,9 +74,9 @@ func (ws *WorkingSpace) UpdateTasks(IdTask uint64, answer *Answer) error {
 // Добавляет новое выражение в структура,
 // обновляет мапу узлов
 // обновляет очередь вычислений
-func (ws *WorkingSpace) AddExpression(expression *Expression) error {
+func (ws *WorkingSpace) AddExpression(expression *expressions.Expression) error {
 	// построить дерево выражения и внести корень
-	root, nodes, err := parsing.GetTree(expression.Postfix)
+	root, nodes, err := parser.GetTree(expression.Postfix)
 	// создать id корневого узла
 	root.CreateId()
 	expression.RootId = root.NodeId
@@ -177,11 +172,9 @@ func (ws *WorkingSpace) Update() {
 
 // Проверяет на готовность узел, при готовности добавляет его в очередь задач
 // TODO проверить, возможно отсюда идет ошибка очереди
-func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
-	node.Mu.RLock()
-	defer node.Mu.RUnlock()
+func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *treeExpression.Node) bool {
 	// Если x и y вычислены
-	if node.X.Calculated && node.Y.Calculated {
+	if node.X.IsCalculated() && node.Y.IsCalculated() {
 		// создаем задачу и кладем её в очередь
 		task := &TaskContainer{
 			IdTask: node.NodeId,
@@ -201,10 +194,9 @@ func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *parsing.Node) bool {
 
 // Обновляет рабочее пространство при обнаружении деления на ноль,
 // проверяет узлы в дереве выражения и обновляет их
-func (ws *WorkingSpace) updateWhileZeroDiv(node *parsing.Node, err error) {
+func (ws *WorkingSpace) updateWhileZeroDiv(node *treeExpression.Node, err error) {
 	log.Println("в выражении присутствует деление на ноль")
 	err = fmt.Errorf(err.Error() + "in Expression")
-	node.ErrZeroDiv = err
 	// находим кореневой узел выражения
 	root := node.Parent
 	for ; root != nil; root = node.Parent {
@@ -217,7 +209,7 @@ func (ws *WorkingSpace) updateWhileZeroDiv(node *parsing.Node, err error) {
 }
 
 // Удаляем узлы выражения из очереди и мапы узлов по корневому узлу
-func (ws *WorkingSpace) removeCalculatedNodes(node *parsing.Node) {
+func (ws *WorkingSpace) removeCalculatedNodes(node *treeExpression.Node) {
 	ws.mu.RLock()
 	defer ws.mu.RUnlock()
 	for node.X != nil {
