@@ -149,7 +149,7 @@ func (ws *WorkingSpace) Update() {
 	//			// добавляем его в таски
 	//			ws.Tasks.AddTask(&TaskContainer{
 	//				IdTask:   node.NodeId,
-	//				TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
+	//				TaskAn:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 	//				Deadline: time.Now().Add(time.Hour * 1000),
 	//				TimingsN: expression.Times,
 	//			})

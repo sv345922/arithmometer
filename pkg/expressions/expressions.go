@@ -28,7 +28,7 @@ func (e *Expression) CreateId() {
 	for _, symbol := range e.Postfix {
 		s = s + symbol.Val
 	}
-	e.IdExpression = treeExpression.GetId(s)
+	e.IdExpression = treeExpression.NewId(s)
 }
 
 // Calculated Определяет, вычислено ли выражение

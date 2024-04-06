@@ -16,17 +16,16 @@ import (
 )
 
 type WorkingSpace struct {
-	Tasks       *taskQueue.Tasks                 `json:"tasks"`
-	Expressions *expressions.Expressions         `json:"expressions"`
-	Timings     *timings.Timings                 `json:"timings"`
-	AllNodes    *map[uint64]*treeExpression.Node `json:"allNodes"` // ключ id узла
+	Tasks       *taskQueue.Tasks         `json:"tasks"`
+	Expressions *expressions.Expressions `json:"expressions"`
+	Timings     *timings.Timings         `json:"timings"`
+	AllNodes    *treeExpression.Nodes    `json:"allNodes"` // ключ id узла // TODO будет храниться в Tasks
 	Mu          sync.RWMutex
 }
 
 func NewWorkingSpace() *WorkingSpace {
 	result := WorkingSpace{}
-	allNodes := make(map[uint64]*treeExpression.Node)
-	result.AllNodes = &allNodes
+	result.AllNodes = treeExpression.NewNodes()
 	exprs := expressions.NewExpressions()
 	result.Expressions = exprs
 	return &result
@@ -48,7 +47,7 @@ func (ws *WorkingSpace) Save() error {
 		db.Expressions = append(db.Expressions, expression)
 	}
 	// создаем мапу узлов для сохранения и заносим ее в базу данных
-	for key, val := range *ws.AllNodes {
+	for key, node := range *ws.AllNodes {
 		node := dataBase.NodeDB{
 			NodeId:     key,
 			Op:         val.Op,
@@ -159,7 +158,7 @@ func (ws *WorkingSpace) AddExpression(expression *expressions.Expression) error 
 			// добавляем его в таски
 			ws.Tasks.AddTask(&TaskContainer{
 				IdTask:   node.NodeId,
-				TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
+				TaskAn:   Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 				Deadline: time.Now().Add(time.Hour * 1000),
 				TimingsN: expression.Times,
 			})
@@ -205,7 +204,7 @@ func (ws *WorkingSpace) Update() {
 	//			// добавляем его в таски
 	//			ws.Tasks.AddTask(&TaskContainer{
 	//				IdTask:   node.NodeId,
-	//				TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
+	//				TaskAn:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 	//				Deadline: time.Now().Add(time.Hour * 1000),
 	//				TimingsN: expression.Times,
 	//			})
@@ -234,7 +233,7 @@ func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *treeExpression.Node) bool
 		// создаем задачу и кладем её в очередь
 		task := &TaskContainer{
 			IdTask: node.NodeId,
-			TaskN: Task{
+			TaskAn: Task{
 				X:  node.X.Val,
 				Y:  node.Y.Val,
 				Op: node.Op,
