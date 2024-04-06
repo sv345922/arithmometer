@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/internal/wSpace"
 	"arithmometer/pkg/timings"
 	"encoding/json"
 	"fmt"
@@ -11,7 +11,7 @@ import (
 )
 
 // Даёт задачу калькулятору
-func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
+func GetTask(ws *wSpace.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверить метод
 		if r.Method != http.MethodGet {
@@ -44,20 +44,6 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		// записываем дедлайн для узла с учетом времени выполнения операции
-		// достаем оператор из задачи
-		// словарь таймигнгов операций
-		//d := map[string]int{
-		//	"+": task.TimingsN.Plus,
-		//	"-": task.TimingsN.Minus,
-		//	"*": task.TimingsN.Mult,
-		//	"/": task.TimingsN.Div,
-		//}
-		// дедлайн равен времени выполнения операции + 50%, статус задач обновляется при
-		// обновлении очереди
-		//timeout := d[task.TaskN.Op] * 150 / 100
-		//task.Deadline = time.Now().Add(time.Second * time.Duration(timeout))
-
 		timeout := task.GetTiming() * 15 / 10
 		task.SetDeadline(timeout)
 
@@ -67,7 +53,7 @@ func GetTask(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Reques
 		// структура для передачи вычислителю
 		type TaskForCalc struct {
 			Id       string          `json:"id"`
-			TaskN    tasker.Task     `json:"taskN"`
+			TaskN    wSpace.Task     `json:"taskN"`
 			TimingsN timings.Timings `json:"timingsN"`
 		}
 		// Создаем структуру для передачи вычислителю

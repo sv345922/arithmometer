@@ -1,7 +1,8 @@
 package handler
 
 import (
-	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/internal/wSpace"
+	"arithmometer/pkg/expressions"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,9 +10,9 @@ import (
 )
 
 // Обрабатывает запросы клиента о проверке результата вычислений
-func GetResult(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
+func GetResult(ws *wSpace.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		expressions := ws.Expressions
+		exprs := ws.Expressions
 
 		// Проверить метод
 		if r.Method != http.MethodGet {
@@ -34,7 +35,7 @@ func GetResult(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Requ
 		// преобразуем id в число
 		idInt, _ := strconv.ParseUint(id, 10, 64)
 		// Поиск выражения в списке выражений
-		expression := tasker.FindExpression(idInt, expressions)
+		expression := expressions.FindExpression(idInt, exprs)
 
 		// выражение не найдено
 		if expression == nil {

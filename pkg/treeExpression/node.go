@@ -15,13 +15,13 @@ type Node struct {
 	Sheet      bool    // флаг листа
 	Calculated bool    // флаг вычисленного узла
 	Parent     *Node   // узел родитель
-	mu         sync.RWMutex
+	Mu         sync.RWMutex
 }
 
 // Создает ID у узла
 func (n *Node) CreateId() uint64 {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.Mu.Lock()
+	defer n.Mu.Unlock()
 	n.NodeId = GetId(n.String())
 	return n.NodeId
 }
@@ -46,8 +46,8 @@ func (n *Node) IsReadyToCalc() bool {
 
 // Возвращает тип узла
 func (n *Node) GetType() string {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
+	n.Mu.RLock()
+	defer n.Mu.RUnlock()
 	if n.Op != "" {
 		return "Op"
 	}
@@ -64,8 +64,8 @@ func (n *Node) String() string {
 
 // Возвращает значение узла
 func (n *Node) getVal() string {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
+	n.Mu.RLock()
+	defer n.Mu.RUnlock()
 	if n.Op == "" {
 		return fmt.Sprint(n.Val)
 	}
@@ -73,7 +73,7 @@ func (n *Node) getVal() string {
 }
 
 func (n *Node) IsCalculated() bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
+	n.Mu.RLock()
+	defer n.Mu.RUnlock()
 	return n.Calculated
 }

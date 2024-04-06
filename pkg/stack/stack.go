@@ -1,13 +1,9 @@
 package stack
 
-import (
-	"arithmometer/pkg/parser"
-	"arithmometer/pkg/treeExpression"
-)
-
 // допустимые типы
 type additiveStack interface {
-	treeExpression.Node | parser.Symbol
+	any
+	//treeExpression.Node | parser.Symbol
 }
 
 // Стэк для реализации алгоритма Дийксты

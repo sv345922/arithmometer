@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"arithmometer/orchestr/inter/tasker"
-	"arithmometer/orchestr/parsing"
+	"arithmometer/internal/wSpace"
+	"arithmometer/pkg/expressions"
+	"arithmometer/pkg/parser"
 	"arithmometer/pkg/timings"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 )
 
 // Обработчик создания нового выражения
-func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
+func NewExpression(ws *wSpace.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверить что это запрос POST
 		if r.Method != http.MethodPost {
@@ -20,7 +21,7 @@ func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.
 			return
 		}
 		// Читаем тело запроса, в котором записано выражение и тайминги операций
-		var newExrp tasker.NewExpr
+		var newExrp wSpace.NewExpr
 		err := json.NewDecoder(r.Body).Decode(&newExrp)
 		defer r.Body.Close()
 		if err != nil {
@@ -33,7 +34,7 @@ func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.
 		}
 		// Парсим выражение, и проверяем его
 		// Предполагается, что если парсинг с ошибкой, значит невалидное выражение
-		postfix, err := parsing.Parse(newExrp.Expr)
+		postfix, err := parser.Parse(newExrp.Expr)
 		// если невалидное выражение
 		if err != nil {
 			log.Println(err)
@@ -42,7 +43,7 @@ func NewExpression(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.
 			return
 		}
 		// Создаем выражение
-		expression := tasker.Expression{
+		expression := expressions.Expression{
 			UserTask: newExrp.Expr,
 			Postfix:  postfix,
 			Times:    *newExrp.Timings,

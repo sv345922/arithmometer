@@ -1,20 +1,29 @@
 package taskQueue
 
 import (
-	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/internal/wSpace"
 	"sync"
 	"time"
 )
 
+type Element interface {
+	IsTimeout() bool
+	SetDeadline(time.Duration)
+	GetID() uint64
+	SetCalc(id uint64)
+}
+
 // Tasks - Очередь задач.
 // Waiting - задачи, готовые для выдачи вычислителям,
 // Working - задачи, взятые вычислителем
+// NorReady - задачи, ожидающие решения других задач
 // WaitingIds - id готовых для вычисления задач
 // L - количество элементов в очереди (всего)
 type Tasks struct {
-	Waiting    []*tasker.TaskContainer          `json:"waiting"`
-	Working    map[uint64]*tasker.TaskContainer `json:"working"`
-	WaitingIds map[uint64]struct{}              `json:"waitingIds"`
+	Waiting    []*Element          `json:"waiting"`
+	Working    map[uint64]*Element `json:"working"`
+	NorReady   map[uint64]*Element `json:"norReady"`
+	WaitingIds map[uint64]struct{} `json:"waitingIds"`
 	L          uint
 	mu         sync.Mutex
 }
@@ -22,16 +31,16 @@ type Tasks struct {
 // NewTasks Возвращает указатель на новую очередь задач
 func NewTasks() *Tasks {
 	return &Tasks{
-		Waiting:    make([]*tasker.TaskContainer, 0),
+		Waiting:    make([]*Element, 0),
 		WaitingIds: make(map[uint64]struct{}),
-		Working:    make(map[uint64]*tasker.TaskContainer),
+		Working:    make(map[uint64]*Element),
 		L:          0,
 		mu:         sync.Mutex{},
 	}
 }
 
 // AddTask Добавляет задачу в список задач (к ожидающим в конец очереди)
-func (ts *Tasks) AddTask(task *tasker.TaskContainer) {
+func (ts *Tasks) AddTask(task *Element) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	ts.Waiting = append(ts.Waiting, task)
@@ -66,11 +75,11 @@ func (ts *Tasks) RemoveTask(idTask uint64) {
 // Возвращает свободную задачу для вычислителя,
 // переносит эту задачу в мапу работающих задач. При пустой очереди возвращает nil
 // Работа с таймингами снаружи функции
-func (ts *Tasks) GetTask(calcId int) *tasker.TaskContainer {
+func (ts *Tasks) GetTask(calcId int) *Element {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	l := len(ts.Waiting)
-	// если очередь пустая
+	// если очередь пустая возвращаем nil
 	if l == 0 {
 		return nil
 	}
@@ -104,6 +113,7 @@ func (ts *Tasks) CheckDeadlines() {
 		keys[i] = k
 		i++
 	}
+
 	for _, key := range keys {
 		task := ts.Working[key]
 		// если задача с прошедшим дедлайном
@@ -111,8 +121,8 @@ func (ts *Tasks) CheckDeadlines() {
 			// устанавливаем дедлайн в далекое будущее
 			task.SetDeadline(time.Hour * 1000)
 			// и перемещаем задачу в начало очереди ожидающих
-			delete(ts.Working, task.IdTask)
-			ts.Waiting = append([]*tasker.TaskContainer{task}, ts.Waiting...)
+			delete(ts.Working, task.GetID())
+			ts.Waiting = append([]*wSpace.TaskContainer{task}, ts.Waiting...)
 			ts.WaitingIds[task.GetID()] = struct{}{}
 			ts.L++
 		}

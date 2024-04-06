@@ -9,7 +9,7 @@ import (
 	"text/scanner"
 )
 
-// TODO
+// TODO обновить связи
 
 var priority = map[string]int{
 	"+": 1,

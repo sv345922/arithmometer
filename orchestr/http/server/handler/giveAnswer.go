@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"arithmometer/orchestr/inter/tasker"
+	"arithmometer/internal/wSpace"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,7 +9,7 @@ import (
 )
 
 // Обработчик, принимает от вычислителя ответ
-func GiveAnswer(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
+func GiveAnswer(ws *wSpace.WorkingSpace) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверить что это метод POST
 		if r.Method != http.MethodPost {
@@ -21,7 +21,7 @@ func GiveAnswer(ws *tasker.WorkingSpace) func(w http.ResponseWriter, r *http.Req
 
 		// Читаем тело запроса, в котором записан ответ
 		defer r.Body.Close()
-		var container tasker.AnswerContainer
+		var container wSpace.AnswerContainer
 		err := json.NewDecoder(r.Body).Decode(&container)
 		if err != nil {
 			log.Println("ошибка json при обработке ответа вычислителя")
