@@ -16,7 +16,7 @@ func Do(c *entities.MessageTask) (float64, error) {
 	Op := c.Op
 	x := c.X
 	y := c.Y
-	log.Println("задачу получена", x, Op, y)
+	log.Println("задача получена", x, Op, y)
 	switch Op {
 	case "+":
 		t := time.Duration(timings.Plus)

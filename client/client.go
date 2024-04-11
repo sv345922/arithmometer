@@ -9,22 +9,25 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 )
 
 // Задача для вычисления
-var expr = "-1+2-3/(4+5) * 6 -7"
+var expr = "-1+2-3/(4+5) * 6 -7 * 8"
 
 func SendNewExpression(exprString string) (string, bool) {
 	// Создать запрос
 	url := "http://127.0.0.1:" + configs.Port + "/newexpression"
 	// Задать тайминги вычислений
 	timing := &entities.Timings{
-		Plus:  6,
-		Minus: 6,
-		Mult:  6,
-		Div:   6,
+		Plus:  1,
+		Minus: 1,
+		Mult:  1,
+		Div:   1,
 	}
 	//timing = nil
 	var expression = newExpression.NewExpr{
@@ -41,9 +44,9 @@ func SendNewExpression(exprString string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	fmt.Printf("Постановка задачи\nStatus: %s\nBody:\n%s\n", resp.Status, string(body))
+	fmt.Printf("Постановка задачи\nStatus: %s\tBody:\t%s\n", resp.Status, string(body))
 	id := string(body)
-	fmt.Println("Задача отправлена")
+	//fmt.Println("Задача отправлена")
 	return id, true
 }
 
@@ -61,7 +64,7 @@ func GetResult(id string) (string, string, error) {
 	if err != nil {
 		return "", "", errTotal
 	}
-	fmt.Printf("Получение результата\nStatus: %s\nBody:\n%s\n", resp.Status, string(body))
+	fmt.Printf("Получение результата\nStatus: %s\tBody:\t%s\n", resp.Status, string(body))
 	return resp.Status, string(body), nil
 }
 func main() {
@@ -72,14 +75,17 @@ func main() {
 	}
 	id, _ := SendNewExpression(expr)
 	fmt.Println()
-	fmt.Println(id)
-	_ = id
-	//
-	//time.Sleep(10 * time.Second)
-	//// получение ответа
-	//_, _, err := GetResult(id)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//GetResult("250")
+	//fmt.Println(id)
+
+	time.Sleep(10 * time.Second)
+	// получение ответа
+	_, answer, err := GetResult(id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for !strings.Contains(answer, "результат выражения") {
+		time.Sleep(3 * time.Second)
+		_, answer, err = GetResult(id)
+	}
+
 }
