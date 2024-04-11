@@ -68,13 +68,13 @@ type Node struct {
 // Создает ID у узла
 func (n *Node) CreateId() uint64 {
 	n.NodeId = GetId(n.String())
-	//n.NodeId = int(time.Now().Unix())
+	//n.Id = int(time.Now().Unix())
 	/*
 		s := n.String()
 		hasher := sha1.New()
 		hasher.Write([]byte(s))
-		n.NodeId = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-		return n.NodeId
+		n.Id = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+		return n.Id
 	*/
 	return n.NodeId
 }

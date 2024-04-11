@@ -1,6 +1,9 @@
 package main
 
 import (
+	"arithmometer/internal/configs"
+	"arithmometer/internal/entities"
+	"arithmometer/internal/useCases/newExpression"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -14,22 +17,21 @@ import (
 var expr = "-1+2-3/(4+5) * 6 -7"
 
 func SendNewExpression(exprString string) (string, bool) {
-	//errTotal := errors.New("ошибка отправки нового выражения")
 	// Создать запрос
-	url := "http://127.0.0.1:8000/newexpression"
+	url := "http://127.0.0.1:" + configs.Port + "/newexpression"
 	// Задать тайминги вычислений
-	timing := &Timings{
+	timing := &entities.Timings{
 		Plus:  6,
 		Minus: 6,
 		Mult:  6,
 		Div:   6,
 	}
 	//timing = nil
-	var exprst = NewExp{
-		Expr:    exprString,
-		Timings: timing,
+	var expression = newExpression.NewExpr{
+		Expression: exprString,
+		Timings:    timing,
 	}
-	data, _ := json.Marshal(exprst) //ошибку пропускаем
+	data, _ := json.Marshal(expression) //ошибку пропускаем
 	r := bytes.NewReader(data)
 	resp, err := http.Post(url, "application/json", r)
 	if err != nil {
@@ -49,7 +51,7 @@ func SendNewExpression(exprString string) (string, bool) {
 func GetResult(id string) (string, string, error) {
 	errTotal := errors.New("ошибка получения результата")
 	// Создать запрос
-	url := "http://127.0.0.1:8000/getresult" + "?id=" + id
+	url := "http://127.0.0.1:" + configs.Port + "/getresult" + "?id=" + id
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", "", err
@@ -70,6 +72,7 @@ func main() {
 	}
 	id, _ := SendNewExpression(expr)
 	fmt.Println()
+	fmt.Println(id)
 	_ = id
 	//
 	//time.Sleep(10 * time.Second)

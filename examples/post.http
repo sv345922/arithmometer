@@ -1,0 +1,12 @@
+POST http://localhost:8000/newexpression HTTP/1.1
+content-type: application/json
+
+{
+    "expression": "1 + 2 * 3 - 1",
+    "timings": {
+      "div": 3,
+      "minus": 3,
+      "mult": 3,
+      "plus": 3
+  }
+}

@@ -1,14 +1,14 @@
 package tasker
 
 import (
+	"arithmometer/internal/timings"
 	"arithmometer/orchestr/parsing"
-	"arithmometer/pkg/timings"
 	"log"
 	"sync"
 )
 
 // Содержит выражения пользователя
-// .Dict - словарь ссылок на выражения, ключ IdExpression
+// .Dict - словарь ссылок на выражения, ключ Id
 // .ListExpr - список с ссылками на выражения
 // .mu - мьютекс для блокировки
 type Expressions struct {

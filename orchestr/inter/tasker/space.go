@@ -1,11 +1,11 @@
 package tasker
 
 import (
-	"arithmometer/pkg/expressions"
-	"arithmometer/pkg/parser"
-	"arithmometer/pkg/taskQueue"
-	"arithmometer/pkg/timings"
-	"arithmometer/pkg/treeExpression"
+	"arithmometer/internal/parser"
+	"arithmometer/internal/taskQueue"
+	"arithmometer/internal/timings"
+	"arithmometer/internal/treeExpression"
+	"arithmometer/orchestr/inter/expressions"
 	"fmt"
 	"log"
 	"sync"
@@ -13,7 +13,7 @@ import (
 )
 
 type WorkingSpace struct {
-	Tasks       *taskQueue.Tasks                 `json:"tasks"`
+	Tasks       *taskQueue.Queue                 `json:"tasks"`
 	Expressions *expressions.Expressions         `json:"expressions"`
 	Timings     *timings.Timings                 `json:"timings"`
 	AllNodes    *map[uint64]*treeExpression.Node `json:"allNodes"` // ключ id узла
@@ -79,7 +79,7 @@ func (ws *WorkingSpace) AddExpression(expression *expressions.Expression) error 
 	root, nodes, err := parser.GetTree(expression.Postfix)
 	// создать id корневого узла
 	root.CreateId()
-	expression.RootId = root.NodeId
+	expression.RootId = root.Id
 
 	// добавляем выражение в список выражений
 	ws.Expressions.Add(expression)
@@ -89,20 +89,20 @@ func (ws *WorkingSpace) AddExpression(expression *expressions.Expression) error 
 	}
 
 	// проходим по нему и добавляем узлы готовые к вычислению в очередь
-	// сами узлы добавляем в AllNodes
+	// сами узлы добавляем в AllTask
 	for _, node := range *nodes {
 		// Создаем ID для узлов
-		if node.NodeId == 0 {
+		if node.Id == 0 {
 			node.CreateId()
 		}
 		// заполняем словарь узлами
 		ws.mu.Lock()
-		(*ws.AllNodes)[node.NodeId] = node
+		(*ws.AllNodes)[node.Id] = node
 		// Если узел не рассчитан и узла с таким ID нет в очереди задач
 		if node.IsReadyToCalc() {
 			// добавляем его в таски
 			ws.Tasks.AddTask(&TaskContainer{
-				IdTask:   node.NodeId,
+				IdTask:   node.Id,
 				TaskN:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 				Deadline: time.Now().Add(time.Hour * 1000),
 				TimingsN: expression.Times,
@@ -116,7 +116,7 @@ func (ws *WorkingSpace) AddExpression(expression *expressions.Expression) error 
 // TODO - не используется
 // При поступлении нового выражения
 // проходит по списку выражений, создает дерево узлов выражения,
-// включает в рабочее пространство список узлов - ws.AllNodes
+// включает в рабочее пространство список узлов - ws.AllTask
 // созадет очередь задач для вычислителей - ws.tasks
 func (ws *WorkingSpace) Update() {
 	//ws.mu.Lock()
@@ -143,30 +143,30 @@ func (ws *WorkingSpace) Update() {
 	//		node.CreateId()
 	//		// проверить наличие задачи в tasks
 	//		// заполняем словарь узлами
-	//		(*ws.AllNodes)[node.NodeId] = node
+	//		(*ws.AllTask)[node.Id] = node
 	//		// Если узел не рассчитан и узла с таким ID нет в очереди задач
-	//		if node.IsReadyToCalc() && !ws.Tasks.isContent(node) {
+	//		if node.IsReadyToCalc() && !ws.Queue.isContent(node) {
 	//			// добавляем его в таски
-	//			ws.Tasks.AddTask(&TaskContainer{
-	//				IdTask:   node.NodeId,
+	//			ws.Queue.AddTask(&TaskContainer{
+	//				IdTask:   node.Id,
 	//				TaskAn:    Task{X: node.X.Val, Y: node.Y.Val, Op: node.Op},
 	//				Deadline: time.Now().Add(time.Hour * 1000),
 	//				TimingsN: expression.Times,
 	//			})
 	//		}
 	//	}
-	//	expression.RootId = root.NodeId
+	//	expression.RootId = root.Id
 	//}
 }
 
 // Проходит дерево выражения от корня и создает список узлов выражения - удалить
-//func GetNodes(root *parsing.NodeDB, nodes *[]*parsing.NodeDB) []*parsing.NodeDB {
+//func GetNodesOfExpression(root *parsing.NodeDB, nodes *[]*parsing.NodeDB) []*parsing.NodeDB {
 //	nodes = append(nodes, root)
 //	if root.Sheet {
 //		return nodes
 //	}
-//	nodes = GetNodes(root.X, nodes)
-//	nodes = GetNodes(root.Y, nodes)
+//	nodes = GetNodesOfExpression(root.X, nodes)
+//	nodes = GetNodesOfExpression(root.Y, nodes)
 //	return nodes
 //}
 
@@ -177,7 +177,7 @@ func checkAndUpdateNodeToTasks(ws *WorkingSpace, node *treeExpression.Node) bool
 	if node.X.IsCalculated() && node.Y.IsCalculated() {
 		// создаем задачу и кладем её в очередь
 		task := &TaskContainer{
-			IdTask: node.NodeId,
+			IdTask: node.Id,
 			TaskN: Task{
 				X:  node.X.Val,
 				Y:  node.Y.Val,
@@ -219,7 +219,7 @@ func (ws *WorkingSpace) removeCalculatedNodes(node *treeExpression.Node) {
 		ws.removeCalculatedNodes(node.Y)
 	}
 	ws.mu.Lock()
-	delete((*ws.AllNodes), node.NodeId)
+	delete((*ws.AllNodes), node.Id)
 	ws.mu.Unlock()
-	ws.Tasks.RemoveTask(node.NodeId)
+	ws.Tasks.RemoveTask(node.Id)
 }

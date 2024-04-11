@@ -1,9 +1,9 @@
 package main
 
 import (
+	"arithmometer/internal/app"
+	"arithmometer/internal/dataBase"
 	"arithmometer/internal/wSpace"
-	"arithmometer/orchestr/http/server"
-	"arithmometer/pkg/dataBase"
 	"log"
 	"os"
 )
@@ -23,7 +23,10 @@ func main() {
 	// создать пустую базу
 	if len(os.Args) > 1 {
 		if os.Args[1] == "new" {
-			dataBase.CreateEmptyDb()
+			err := dataBase.CreateEmptyDb()
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	// сделать список задач для вычисления
@@ -31,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Printf("main: %v", err)
 	}
-	err = server.RunServer(ws)
+	err = app.RunServer(ws)
 	log.Println(err)
 }
 
@@ -39,7 +42,7 @@ func main() {
 func RunTasker() (*wSpace.WorkingSpace, error) {
 	// Восстанавливаем выражения и задачи из базы данных
 	// Загрузка сохраненной БД
-	ws, err := dataBase.LoadDB()
+	ws, err := wSpace.LoadDB()
 	if err != nil {
 		log.Println("ошибка загрузки БД", err)
 		return ws, err

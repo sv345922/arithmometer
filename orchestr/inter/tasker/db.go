@@ -1,9 +1,9 @@
 package tasker
 
 import (
+	"arithmometer/internal/taskQueue"
+	"arithmometer/internal/timings"
 	"arithmometer/orchestr/parsing"
-	"arithmometer/pkg/taskQueue"
-	"arithmometer/pkg/timings"
 	"encoding/json"
 	"log"
 	"os"
@@ -12,7 +12,7 @@ import (
 
 type DataBase struct {
 	// список выражений (с таймингами)
-	Tasks       *taskQueue.Tasks  `json:"tasks"`
+	Tasks       *taskQueue.Queue  `json:"tasks"`
 	Expressions []*Expression     `json:"expressions"` // []Expression
 	Timings     timings.Timings   `json:"timings"`
 	AllNodes    map[uint64]NodeDB `json:"allNodes"` // map[uint64]NodeDB

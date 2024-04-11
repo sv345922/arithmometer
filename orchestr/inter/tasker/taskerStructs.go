@@ -1,8 +1,8 @@
 package tasker
 
 import (
+	"arithmometer/internal/timings"
 	"arithmometer/orchestr/parsing"
-	"arithmometer/pkg/timings"
 	"log"
 	"sync"
 	"time"
@@ -61,7 +61,7 @@ type Task struct {
 }
 
 // Tasks Содержит задачи для вычислителей
-// .Dict - словарь задач, ключ IdExpression
+// .Dict - словарь задач, ключ Id
 // .mu - мьютекс для блокировки словаря
 type Tasks struct {
 	Queue *Dequeue     `json:"queue"`
